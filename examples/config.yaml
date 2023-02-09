@@ -1,0 +1,9 @@
+ENABLE_TLS : ON
+USE_CLIENT_CERTS : ON
+CA_CRT : basicTLS_WithCA/ZohoIoTServerRootCA.pem
+CLIENT_CRT : basicTLS_WithCA/pythonsdk.cert.pem
+CLIENT_KEY : basicTLS_WithCA/pythonsdk.private.key
+MQTT_USERNAME : /79937niary.zohoiothub.com/v1/devices/321000000167145/connect
+MQTT_PASSWORD :
+LOG_LEVEL : DEBUG
+LOG_FILENAME : NEW.log

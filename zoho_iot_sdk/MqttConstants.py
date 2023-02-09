@@ -1,20 +1,23 @@
 #!/usr/bin/env python3
 from enum import Enum, auto
-class transactionStatus(Enum):
+
+
+class TransactionStatus(Enum):
     SUCCESS = 0
     FAILURE = -1
     CONNECTION_ERROR = -2
 
 
-class clientStatus(Enum):
+class ClientStatus(Enum):
     NOT_INITIALIZED = auto()
     INITIALIZED = auto()
     CONNECTED = auto()
     DISCONNECTED = auto()
-    RETRYING = auto()
+    RETRYING = auto() #TODO: Remove this unused enum
 
 
-class connectionStatus(Enum):
+#TODO: use constants from paho library
+class ConnectionStatus(Enum):
     FAILURE = -1
     SSL_FAILURE = -2
     SUCCESS = 0
@@ -25,8 +28,8 @@ class connectionStatus(Enum):
     NOT_AUTHORIZED = 5
     SERVER_CONNECT_ERROR = 6
 
-
-class mqttCodes(Enum):
+#TODO: use constants from paho library
+class MqttCodes(Enum):
     MQTT_ERR_AGAIN = -1
     MQTT_ERR_SUCCESS = 0
     MQTT_ERR_NOMEM = 1
@@ -45,3 +48,20 @@ class mqttCodes(Enum):
     MQTT_ERR_ERRNO = 14
     MQTT_ERR_QUEUE_SIZE = 15
     MQTT_ERR_KEEPALIVE = 16
+
+
+class CommandAckResponseCodes(Enum):
+    COMMAND_RECEIVED_ACK_CODE = 1000
+    SUCCESSFULLY_EXECUTED = 1001
+    EXECUTION_FAILURE = 4000
+    METHOD_NOT_FOUND = 4001
+    EXECUTING_PREVIOUS_COMMAND = 4002
+    INSUFFICIENT_INPUTS = 4003
+    DEVICE_CONNECTIVITY_ISSUES = 4004
+    PARTIAL_EXECUTION = 4005
+    ALREADY_ON_SAME_STATE = 4006
+
+#TODO: use individual response codes for config settings
+class ConfigAckResponseCodes(Enum):
+    SUCCESSFULLY_EXECUTED = 1001
+    EXECUTION_FAILURE = 4000
