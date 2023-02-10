@@ -6,8 +6,8 @@ name = "pypi"
 [packages]
 paho-mqtt = {version="==1.6.1"}
 simplejson = {version="==3.18.1"}
-jproperties = {version="==2.1.1"}
-#TODO: add yaml library
+PyYAML = {version="==6.0"}
+
 
 [dev-packages]
 pytest = "*"

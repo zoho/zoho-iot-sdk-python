@@ -49,20 +49,16 @@ def config_callback(ack_client, message):
 
 
 signal.signal(signal.SIGINT, handler)
-client = ZohoIoTClient(secureConnection=True, useClientCertificates=True)
-client.setLogger(loglevel="DEBUG", filename="app.log")
 
-client.init(mqttUserName="/79937niary.zohoiothub.com/v1/devices/321000000167145/connect",
-            caCertificate="basicTLS_WithCA/ZohoIoTServerRootCA.pem",
-            clientCertificate="basicTLS_WithCA/pythonsdk.cert.pem",
-            privateKey="basicTLS_WithCA/pythonsdk.private.key")
+client = ZohoIoTClient()
+client.initYamlConfiguration("configuration.yaml")
 rc = client.connect()
 
 if rc == 0:
     client.subscribeCommandCallback(function=command_callback)
     client.subscribeConfigCallback(function=config_callback)
     while True:
-        client.addDataPoint(key="temperature", value=35)
-        client.addDataPoint(key="humidity", value=70)
-        client.dispatch()
+        eventData = {"temperature": 45, "humidity": 20}
+        client.dispatchEvent(eventType="ALARM", eventDescription="Critical Temperature", eventDataKeymap=eventData)
         time.sleep(30)
+
