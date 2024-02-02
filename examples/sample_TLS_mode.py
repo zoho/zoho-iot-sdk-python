@@ -51,13 +51,8 @@ def config_callback(ack_client, message):
 signal.signal(signal.SIGINT, handler)
 client = ZohoIoTClient(secureConnection=True)
 client.setLogger(loglevel="DEBUG")
-client.init(mqttUserName="/79937niary.zohoiothub.com/v1/devices/321000000167133/connect",
-            mqttPassword="5262d78fd4e269847e22e79fa378be2f16cfddd957acc826be6c8145de51eb",
-            caCertificate="basicTLS/ZohoIoTServerRootCA.pem")
-
-# client.init(mqttUserName="<user name>", mqttPassword="<password>",
-#             caCertificate="<ZohoIoTServerRootCA.pem file location>")
-
+client.init(mqttUserName="<user name>", mqttPassword="<password>",
+            caCertificate="<ZohoIoTServerRootCA.pem file location>")
 
 rc = client.connect()
 
@@ -69,4 +64,4 @@ if rc == 0:
         client.addDataPoint(key="humidity", value=70)
         client.markDataPointAsError(key="pressure")
         client.dispatchAsset(assetName="home")
-        time.sleep(10)
+        time.sleep(30)

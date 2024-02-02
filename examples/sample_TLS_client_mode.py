@@ -50,12 +50,12 @@ def config_callback(ack_client, message):
 
 signal.signal(signal.SIGINT, handler)
 client = ZohoIoTClient(secureConnection=True, useClientCertificates=True)
-client.setLogger(loglevel="DEBUG", filename="app.log")
+client.setLogger(loglevel="DEBUG", filename="zoho_iot.log")
 
-client.init(mqttUserName="/79937niary.zohoiothub.com/v1/devices/321000000167145/connect",
-            caCertificate="basicTLS_WithCA/ZohoIoTServerRootCA.pem",
-            clientCertificate="basicTLS_WithCA/pythonsdk.cert.pem",
-            privateKey="basicTLS_WithCA/pythonsdk.private.key")
+client.init(mqttUserName="<user name>",
+            caCertificate="<ZohoIoTServerRootCA.pem file location>",
+            clientCertificate="<Certificate_name.cert.pem file location>",
+            privateKey="<Certificate_name.private.key file location>")
 rc = client.connect()
 
 if rc == 0:

@@ -61,7 +61,7 @@ def config_callback(ack_client, message):
 
 if __name__ == "__main__":
 
-    interval = 10
+    interval = 30
     signal.signal(signal.SIGINT, handler)
     json_file_location = "setup.json"
     json_data = {}
@@ -84,12 +84,8 @@ if __name__ == "__main__":
         print("invalid interval ,continuing on default")
     client = ZohoIoTClient(secureConnection=True)
     client.setLogger(loglevel="DEBUG")
-    client.init(mqttUserName="/79937niary.zohoiothub.com/v1/devices/321000000167133/connect",
-                mqttPassword="5262d78fd4e269847e22e79fa378be2f16cfddd957acc826be6c8145de51eb",
-                caCertificate="basicTLS/ZohoIoTServerRootCA.pem")
-
-    # client.init(mqttUserName="<user name>", mqttPassword="<password>",
-    #             caCertificate="<ZohoIoTServerRootCA.pem file location>")
+    client.init(mqttUserName="<user name>", mqttPassword="<password>",
+                caCertificate="<ZohoIoTServerRootCA.pem file location>")
 
     rc = client.connect()
 

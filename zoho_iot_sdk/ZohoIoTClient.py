@@ -363,6 +363,18 @@ class ZohoIoTClient:
                 self.payloadJSON[assetName] = valueObject
         return TransactionStatus.SUCCESS.value
 
+    def addJson(self, json_data):
+        if self.is_blank(json_data):
+            logging.error("Can't add empty json")
+            return TransactionStatus.FAILURE.value
+        try:
+            parsed_data = json.loads(json_data)
+            self.JsonData = parsed_data
+            return TransactionStatus.SUCCESS.value
+        except json.JSONDecodeError as e:
+            logging.error("Invalid json ")
+        return TransactionStatus.FAILURE.value
+
     def markDataPointAsError(self, key, assetName=None):
         return self.addDataPoint(key=key, value="<ERROR>", assetName=assetName)
 
