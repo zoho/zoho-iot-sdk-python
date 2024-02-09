@@ -3,14 +3,15 @@ import logging
 
 from zoho_iot_sdk.MqttConstants import TransactionStatus, ClientStatus, CommandAckResponseCodes, ConfigAckResponseCodes
 from os.path import exists
-import paho.mqtt.client as MqttClient
+import paho.mqtt.client as mqtt_client
 import json
 import threading
 import yaml
 
 
 class ZohoIoTClient:
-    def __init__(self, secureConnection=False, useClientCertificates=False):
+    def __init__(self, secure_connection=False, use_client_certificates=False):
+        self.json_data = None
         self.mqttUserName = None
         self.mqttPassword = None
         self.hostname = None
@@ -21,8 +22,8 @@ class ZohoIoTClient:
         self.clientCertificate = None
         self.privateKey = None
         self.privateKeyPassword = None
-        self.secureConnection = secureConnection
-        self.useClientCertificates = useClientCertificates
+        self.secureConnection = secure_connection
+        self.useClientCertificates = use_client_certificates
 
         self.dataTopic = None
         self.eventTopic = None
@@ -50,12 +51,13 @@ class ZohoIoTClient:
         c_handler.setFormatter(c_format)
         self.logger.addHandler(c_handler)
 
-    def is_blank(self, Input):
-        if Input is not None and Input.strip() != "":
+    @staticmethod
+    def is_blank(data):
+        if data is not None and data.strip() != "":
             return False
         return True
 
-    def setLogger(self, loglevel=None, filename=None):
+    def set_logger(self, loglevel=None, filename=None):
         if not self.is_blank(loglevel):
             if loglevel == "INFO":
                 self.logger.setLevel(logging.INFO)
@@ -74,7 +76,7 @@ class ZohoIoTClient:
             f_handler.setFormatter(f_format)
             self.logger.addHandler(f_handler)
 
-    def _onConnect(self, client, userdata, flags, rc):
+    def _on_connect(self, client, userdata, flags, rc):
         self.connectResponseCode = rc
         if self.connectResponseCode == 0:
             if self.clientStatus == ClientStatus.DISCONNECTED:
@@ -83,63 +85,62 @@ class ZohoIoTClient:
         self.clientStatus = ClientStatus.CONNECTED
         self.connectionEvent.set()
 
-    def _onPublish(self, client, userdata, mid):
+    def _on_publish(self, client, userdata, mid):
         self.connectionEvent.set()
 
-    def _onDisconnect(self, client, userdata, rc):
+    def _on_disconnect(self, client, userdata, rc):
         self.logger.info("Client disconnected")
         self.clientStatus = ClientStatus.DISCONNECTED
         self.disconnectResponseCode = rc
         self.connectionEvent.set()
 
-    def _onSubscribe(self, client, userdata, mid, granted_qos):
+    def _on_subscribe(self, client, userdata, mid, granted_qos):
         self.subscribeEvent.set()
 
-    def _onMessage(self, client, userdata, msg):
+    def _on_message(self, client, userdata, msg):
         self.logger.info("Message Received")
         self.logger.debug("Message:%s ,Topic:%s ", msg.payload, msg.topic)
         if msg.topic == self.commandsTopic:
-            threading.Thread(target=self.handleCommand, args=(msg,)).start()
+            threading.Thread(target=self.handle_command, args=(msg,)).start()
         elif msg.topic == self.configTopic:
-            threading.Thread(target=self.handleConfig, args=(msg,)).start()
+            threading.Thread(target=self.handle_config, args=(msg,)).start()
         else:
             if msg.topic in self.callBackList:
                 threading.Thread(target=self.callBackList[msg.topic], args=(self, msg,)).start()
             else:
                 self.logger.error("Invalid topic")
 
-    def isConnected(self):
+    def is_connected(self):
         return self.pahoClient.is_connected()
 
-    def handleCommand(self, message):
-        self.sendFirstAck(message=message.payload, topic=self.commandsAckTopic,
-                          ackCode=CommandAckResponseCodes.COMMAND_RECEIVED_ACK_CODE)
+    def handle_command(self, message):
+        self.send_first_ack(message=message.payload, topic=self.commandsAckTopic,
+                            ack_code=CommandAckResponseCodes.COMMAND_RECEIVED_ACK_CODE)
         if self.commandsTopic in self.callBackList:
             threading.Thread(target=self.callBackList[self.commandsTopic], args=(self, message,)).start()
 
-    def handleConfig(self, message):
-        self.sendFirstAck(message=message.payload, topic=self.configAckTopic,
-                          ackCode=ConfigAckResponseCodes.CONFIG_RECEIVED_ACK_CODE)
+    def handle_config(self, message):
+        self.send_first_ack(message=message.payload, topic=self.configAckTopic,
+                            ack_code=ConfigAckResponseCodes.CONFIG_RECEIVED_ACK_CODE)
         if self.configTopic in self.callBackList:
             threading.Thread(target=self.callBackList[self.configTopic], args=(self, message,)).start()
 
-
-    def sendFirstAck(self, message, topic, ackCode):  # --
+    def send_first_ack(self, message, topic, ack_code):
         commands_list = json.loads(message)
         ack_payload = {}
         for i in range(len(commands_list)):
-            correlationId = commands_list[i]["correlation_id"]
-            ack_payload[correlationId] = {"status_code": ackCode.value,
-                                          "response": ""}
-        return self.publishWithTopic(topic=topic, message=json.dumps(ack_payload))
+            correlation_id = commands_list[i]["correlation_id"]
+            ack_payload[correlation_id] = {"status_code": ack_code.value,
+                                           "response": ""}
+        return self.publish_with_topic(topic=topic, message=json.dumps(ack_payload))
 
-    def publishCommandAckList(self, payloadJSON):
-        self.publishAckLst(topic=self.commandsAckTopic, payload=payloadJSON)
+    def publish_command_ack_list(self, payload_json):
+        self.publish_ack_lst(topic=self.commandsAckTopic, payload=payload_json)
 
-    def publishConfigAckList(self, payloadJSON):
-        self.publishAckLst(topic=self.configAckTopic, payload=payloadJSON)
+    def publish_config_ack_list(self, payload_json):
+        self.publish_ack_lst(topic=self.configAckTopic, payload=payload_json)
 
-    def publishAckLst(self, topic, payload):
+    def publish_ack_lst(self, topic, payload):
         continue_flag = True
         try:
             ack_payload_object = json.loads(payload)
@@ -171,30 +172,30 @@ class ZohoIoTClient:
             self.logger.error("Cannot publish with improper Command ACK structure :\n" + payload)
             return TransactionStatus.FAILURE.value
 
-        return self.publishWithTopic(topic=topic, message=payload)
+        return self.publish_with_topic(topic=topic, message=payload)
 
-    def publishCommandAck(self, correlation_id, status_code, responseMessage):
+    def publish_command_ack(self, correlation_id, status_code, response_message):
         if status_code not in CommandAckResponseCodes:
             self.logger.error("Invalid status code")
             return TransactionStatus.FAILURE.value
-        self.publishAck(topic=self.commandsAckTopic, correlation_id=correlation_id, status_code=status_code,
-                        responseMessage=responseMessage)
+        self.publish_ack(topic=self.commandsAckTopic, correlation_id=correlation_id, status_code=status_code,
+                         response_message=response_message)
 
-    def publishConfigAck(self, correlation_id, status_code, responseMessage):
+    def publish_config_ack(self, correlation_id, status_code, response_message):
         if status_code not in ConfigAckResponseCodes:
             self.logger.error("Invalid status code")
             return TransactionStatus.FAILURE.value
-        self.publishAck(topic=self.configAckTopic, correlation_id=correlation_id, status_code=status_code,
-                        responseMessage=responseMessage)
+        self.publish_ack(topic=self.configAckTopic, correlation_id=correlation_id, status_code=status_code,
+                         response_message=response_message)
 
-    def publishAck(self, topic, correlation_id, status_code, responseMessage):
-        if self.is_blank(correlation_id) or responseMessage is None:
+    def publish_ack(self, topic, correlation_id, status_code, response_message):
+        if self.is_blank(correlation_id) or response_message is None:
             self.logger.error("Correlation ID or response Message can't be NULL or empty")
             return TransactionStatus.FAILURE.value
-        ack_payload = {correlation_id: {"status_code": status_code.value, "response": responseMessage}}
-        return self.publishWithTopic(topic=topic, message=json.dumps(ack_payload))
+        ack_payload = {correlation_id: {"status_code": status_code.value, "response": response_message}}
+        return self.publish_with_topic(topic=topic, message=json.dumps(ack_payload))
 
-    def validateClientState(self):
+    def validate_client_state(self):
         if self.clientStatus == ClientStatus.NOT_INITIALIZED:
             self.logger.error("Client must be initialized")
             return TransactionStatus.FAILURE.value
@@ -205,22 +206,22 @@ class ZohoIoTClient:
             self.logger.debug("Client must be connected to HUB ")
             return TransactionStatus.FAILURE.value
         else:
-            if self.isConnected():
+            if self.is_connected():
                 return TransactionStatus.SUCCESS.value
             else:
                 return TransactionStatus.FAILURE.value
 
-    def extractHostNameAndClientId(self, mqttUserName):
-        mqttUserNameArray = mqttUserName.split("/")
-        if len(mqttUserNameArray) != 6:
+    def extract_host_name_and_client_id(self, mqtt_user_name):
+        mqtt_user_name_array = mqtt_user_name.split("/")
+        if len(mqtt_user_name_array) != 6:
             self.logger.error("Wrong MQTTUserName format.")
             return False
         else:
-            self.hostname = mqttUserNameArray[1]
-            self.clientID = mqttUserNameArray[4]
+            self.hostname = mqtt_user_name_array[1]
+            self.clientID = mqtt_user_name_array[4]
             return True
 
-    def initYamlConfiguration(self, file):
+    def init_yaml_configuration(self, file):
         if self.is_blank(file) and not exists(file.strip()):
             self.logger.error("Location is blank or yaml file missing in the location")
             return TransactionStatus.FAILURE.value
@@ -231,51 +232,51 @@ class ZohoIoTClient:
         if configuration["USE_CLIENT_CERTS"]:
             self.useClientCertificates = True
         if configuration["LOG_LEVEL"] is not None:
-            self.setLogger(loglevel=configuration["LOG_LEVEL"])
+            self.set_logger(loglevel=configuration["LOG_LEVEL"])
         if configuration["LOG_FILENAME"] is not None:
-            self.setLogger(filename=configuration["LOG_FILENAME"])
+            self.set_logger(filename=configuration["LOG_FILENAME"])
         self.logger.debug("Configuration data:%s", configuration)
-        return self.init(mqttUserName=configuration['MQTT_USERNAME'], mqttPassword=configuration['MQTT_PASSWORD'],
-                         caCertificate=configuration['CA_CRT'], clientCertificate=configuration['CLIENT_CRT'],
-                         privateKey=configuration['CLIENT_KEY'])
+        return self.init(mqtt_user_name=configuration['MQTT_USERNAME'], mqtt_password=configuration['MQTT_PASSWORD'],
+                         ca_certificate=configuration['CA_CRT'], client_certificate=configuration['CLIENT_CRT'],
+                         private_key=configuration['CLIENT_KEY'])
 
-    def init(self, mqttUserName, mqttPassword='', caCertificate=None, clientCertificate=None, privateKey=None,
-             privateKeyPassword=None):
-        if self.is_blank(mqttUserName):
+    def init(self, mqtt_user_name, mqtt_password='', ca_certificate=None, client_certificate=None, private_key=None,
+             private_key_password=None):
+        if self.is_blank(mqtt_user_name):
             self.logger.error("MQTTUserName cannot be empty")
             return TransactionStatus.FAILURE.value
 
-        self.mqttUserName = str(mqttUserName).strip()
-        self.mqttPassword = str(mqttPassword).strip()
-        if not self.extractHostNameAndClientId(self.mqttUserName):
+        self.mqttUserName = str(mqtt_user_name).strip()
+        self.mqttPassword = str(mqtt_password).strip()
+        if not self.extract_host_name_and_client_id(self.mqttUserName):
             self.clientStatus = ClientStatus.NOT_INITIALIZED
             return False
-        topicPrefix = "/devices/" + str(self.clientID)
-        self.dataTopic = topicPrefix + "/telemetry"
-        self.eventTopic = topicPrefix + "/events"
-        self.commandsTopic = topicPrefix + "/commands"
+        topic_prefix = "/devices/" + str(self.clientID)
+        self.dataTopic = topic_prefix + "/telemetry"
+        self.eventTopic = topic_prefix + "/events"
+        self.commandsTopic = topic_prefix + "/commands"
         self.commandsAckTopic = str(self.commandsTopic) + "/ack"
-        self.configTopic = topicPrefix + "/configsettings"
+        self.configTopic = topic_prefix + "/configsettings"
         self.configAckTopic = str(self.configTopic) + "/ack"
         self.subscriptionTopicsList.append(self.commandsTopic)
         self.subscriptionTopicsList.append(self.configTopic)
 
         if self.secureConnection:
-            if self.is_blank(caCertificate) or not exists(caCertificate.strip()):
+            if self.is_blank(ca_certificate) or not exists(ca_certificate.strip()):
                 self.logger.error("CAFile file is not found/ empty or can't be accessed.")
                 return TransactionStatus.FAILURE.value
 
-            self.caCertificate = caCertificate.strip()
+            self.caCertificate = ca_certificate.strip()
 
             if self.useClientCertificates:
-                if ((self.is_blank(clientCertificate) or not exists(clientCertificate.strip())) or (
-                        self.is_blank(privateKey) or not exists(privateKey.strip()))):
+                if ((self.is_blank(client_certificate) or not exists(client_certificate.strip())) or (
+                        self.is_blank(private_key) or not exists(private_key.strip()))):
                     self.logger.error("ClientCertificate / PrivateKey file is not found or empty or can't be accessed.")
                     return TransactionStatus.FAILURE.value
-                self.clientCertificate = clientCertificate.strip()
-                self.privateKey = privateKey.strip()
-                self.privateKeyPassword = privateKeyPassword if self.is_blank(
-                    privateKeyPassword) else privateKeyPassword.strip()
+                self.clientCertificate = client_certificate.strip()
+                self.privateKey = private_key.strip()
+                self.privateKeyPassword = private_key_password if self.is_blank(
+                    private_key_password) else private_key_password.strip()
             else:
                 # MQTTPassword is not applicable for Server TLS mode.
                 if self.is_blank(self.mqttPassword):
@@ -284,7 +285,7 @@ class ZohoIoTClient:
             self.port = 8883
 
         else:
-            if self.is_blank(mqttPassword):
+            if self.is_blank(mqtt_password):
                 self.logger.error("MQTTPassword cannot be empty.")
                 return TransactionStatus.FAILURE.value
             self.port = 1883
@@ -299,13 +300,13 @@ class ZohoIoTClient:
             self.logger.error("Client must be initialized")
             return TransactionStatus.FAILURE.value
 
-        if self.clientStatus == ClientStatus.CONNECTED and self.isConnected():
+        if self.clientStatus == ClientStatus.CONNECTED and self.is_connected():
             self.logger.debug("already connected!")
-            return MqttClient.CONNACK_ACCEPTED
+            return mqtt_client.CONNACK_ACCEPTED
 
         try:
             if self.pahoClient is None:
-                self.pahoClient = MqttClient.Client(client_id=self.clientID, clean_session=True, protocol=4)
+                self.pahoClient = mqtt_client.Client(client_id=self.clientID, clean_session=True, protocol=4)
 
             # self.pahoClient.enable_logger(logging.DEBUG)
             self.pahoClient.username_pw_set(self.mqttUserName, self.mqttPassword)
@@ -316,11 +317,11 @@ class ZohoIoTClient:
                 self.pahoClient.tls_set(ca_certs=self.caCertificate, certfile=self.clientCertificate,
                                         keyfile=self.privateKey)
 
-            self.pahoClient.on_connect = self._onConnect
-            self.pahoClient.on_publish = self._onPublish
-            self.pahoClient.on_disconnect = self._onDisconnect
-            self.pahoClient.on_subscribe = self._onSubscribe
-            self.pahoClient.on_message = self._onMessage
+            self.pahoClient.on_connect = self._on_connect
+            self.pahoClient.on_publish = self._on_publish
+            self.pahoClient.on_disconnect = self._on_disconnect
+            self.pahoClient.on_subscribe = self._on_subscribe
+            self.pahoClient.on_message = self._on_message
 
             self.logger.debug("Connecting..")
             self.connectionEvent.clear()
@@ -336,11 +337,11 @@ class ZohoIoTClient:
                 self.logger.info("Client connected to MQTT Broker! " + self.hostname)
             else:
                 self.logger.error("Error code: %d Reason: %s", self.connectResponseCode,
-                                  MqttClient.connack_string(self.connectResponseCode))
+                                  mqtt_client.connack_string(self.connectResponseCode))
                 self.pahoClient.loop_stop()
                 return self.connectResponseCode
 
-            self.subscribe(topicList=self.subscriptionTopicsList)
+            self.subscribe(topic_list=self.subscriptionTopicsList)
 
             return self.connectResponseCode
 
@@ -348,75 +349,75 @@ class ZohoIoTClient:
             self.logger.error("Exception :", e)
             return TransactionStatus.FAILURE.value
 
-    def addDataPoint(self, key, value, assetName=None):
+    def add_data_point(self, key, value, asset_name=None):
         if self.is_blank(key):
             self.logger.error("Can't add empty key")
             return TransactionStatus.FAILURE.value
 
-        if self.is_blank(assetName):
+        if self.is_blank(asset_name):
             self.payloadJSON[key] = value
         else:
-            if assetName in self.payloadJSON.keys():
-                self.payloadJSON[assetName][key] = value
+            if asset_name in self.payloadJSON.keys():
+                self.payloadJSON[asset_name][key] = value
             else:
-                valueObject = {key: value}
-                self.payloadJSON[assetName] = valueObject
+                value_object = {key: value}
+                self.payloadJSON[asset_name] = value_object
         return TransactionStatus.SUCCESS.value
 
-    def addJson(self, json_data):
+    def add_json(self, json_data):
         if self.is_blank(json_data):
             logging.error("Can't add empty json")
             return TransactionStatus.FAILURE.value
         try:
             parsed_data = json.loads(json_data)
-            self.JsonData = parsed_data
+            self.json_data = parsed_data
             return TransactionStatus.SUCCESS.value
-        except json.JSONDecodeError as e:
+        except json.JSONDecodeError:
             logging.error("Invalid json ")
         return TransactionStatus.FAILURE.value
 
-    def markDataPointAsError(self, key, assetName=None):
-        return self.addDataPoint(key=key, value="<ERROR>", assetName=assetName)
+    def mark_data_point_as_error(self, key, asset_name=None):
+        return self.add_data_point(key=key, value="<ERROR>", asset_name=asset_name)
 
     def dispatch(self):
-        rc = self.publishWithTopic(topic=self.dataTopic, message=json.dumps(self.payloadJSON))
+        rc = self.publish_with_topic(topic=self.dataTopic, message=json.dumps(self.payloadJSON))
         if rc == 0:
             self.payloadJSON = {}
         return rc
 
-    def publish(self, messageString):
-        rc = self.publishWithTopic(topic=self.dataTopic, message=json.dumps(messageString))
+    def publish(self, message_string):
+        rc = self.publish_with_topic(topic=self.dataTopic, message=json.dumps(message_string))
         if rc == 0:
             self.payloadJSON = {}
         return rc
 
-    def dispatchEvent(self, eventType=None, eventDescription=None, eventDataKeymap=None, assetName=None):
-        if self.is_blank(eventType) or self.is_blank(eventDescription) or eventDataKeymap is None:
+    def dispatch_event(self, event_type=None, event_description=None, event_data_keymap=None, asset_name=None):
+        if self.is_blank(event_type) or self.is_blank(event_description) or event_data_keymap is None:
             self.logger.error("Can't append NULL arguments to Event.")
             return TransactionStatus.FAILURE
         payload = {}
-        if not self.is_blank(eventType):
-            payload["eventType"] = eventType
-        if not self.is_blank(eventDescription):
-            payload["eventDescription"] = eventDescription
-        if eventDataKeymap is not None:
-            payload["eventData"] = eventDataKeymap
-        if self.is_blank(assetName):
-            return self.publishWithTopic(topic=self.dataTopic, message=json.dumps(payload))
+        if not self.is_blank(event_type):
+            payload["eventType"] = event_type
+        if not self.is_blank(event_description):
+            payload["eventDescription"] = event_description
+        if event_data_keymap is not None:
+            payload["eventData"] = event_data_keymap
+        if self.is_blank(asset_name):
+            return self.publish_with_topic(topic=self.dataTopic, message=json.dumps(payload))
         else:
-            return self.dispatchAsset(assetName)
+            return self.dispatch_asset(asset_name)
 
-    def dispatchAsset(self, assetName):
-        if self.is_blank(assetName):
+    def dispatch_asset(self, asset_name):
+        if self.is_blank(asset_name):
             self.logger.error("Asset Name can't be null")
             return TransactionStatus.FAILURE
-        payload = {assetName: self.payloadJSON}
-        rc = self.publishWithTopic(topic=self.dataTopic, message=json.dumps(payload))
+        payload = {asset_name: self.payloadJSON}
+        rc = self.publish_with_topic(topic=self.dataTopic, message=json.dumps(payload))
         if rc == 0:
             self.payloadJSON = {}
         return rc
 
-    def publishWithTopic(self, topic, message):
+    def publish_with_topic(self, topic, message):
         if self.is_blank(topic):
             self.logger.error("Topic can't be blank")
             return TransactionStatus.FAILURE
@@ -433,7 +434,7 @@ class ZohoIoTClient:
             self.logger.info("Message published successfully")
             self.logger.debug("Message :%s , topic :%s", message, topic)
         else:
-            self.logger.error("Message publish Error code : %d Reason : %s", rc[0], MqttClient.error_string(rc[0]))
+            self.logger.error("Message publish Error code : %d Reason : %s", rc[0], mqtt_client.error_string(rc[0]))
         return rc[0]
 
     def disconnect(self):
@@ -447,7 +448,7 @@ class ZohoIoTClient:
             self.logger.debug("Client already Disconnected")
             return TransactionStatus.SUCCESS.value
 
-        if self.isConnected():
+        if self.is_connected():
             self.connectionEvent.clear()
             self.pahoClient.loop_stop()
             self.pahoClient.disconnect()
@@ -464,41 +465,41 @@ class ZohoIoTClient:
         return TransactionStatus.SUCCESS.value
 
     def resubscribe(self):
-        self.subscribe(topicList=self.subscriptionTopicsList)
+        self.subscribe(topic_list=self.subscriptionTopicsList)
 
-    def subscribe(self, topicList=None):
-        if topicList is None:
+    def subscribe(self, topic_list=None):
+        if topic_list is None:
             self.logger.error("List of topic is mandatory")
             return TransactionStatus.FAILURE.value
-        elif len(topicList) == 0:
+        elif len(topic_list) == 0:
             self.logger.error("ListTopic can't be empty")
             return TransactionStatus.FAILURE.value
 
-        clientState = self.validateClientState()
-        if clientState != 0 or not self.isConnected():
+        client_state = self.validate_client_state()
+        if client_state != 0 or not self.is_connected():
             return TransactionStatus.FAILURE.value
 
-        isFailed = False
-        if topicList is not None:
-            for Topic in topicList:
+        is_failed = False
+        if topic_list is not None:
+            for Topic in topic_list:
                 if Topic in self.subscriptionTopicsList:
                     self.subscribeEvent.clear()
                     rc = self.pahoClient.subscribe(Topic)
                     if not self.subscribeEvent.wait(timeout=20):
                         self.logger.error("Subscribe timeout, unable to subscribe to topic: %s", Topic)
-                        isFailed = True
+                        is_failed = True
                     if rc[0] == 0:
                         self.logger.debug("Subscribed to topic:%s", Topic)
                     else:
-                        isFailed = True
+                        is_failed = True
                 else:
-                    isFailed = True
+                    is_failed = True
                     self.logger.error("Invalid topic:%s", Topic)
 
-        return TransactionStatus.SUCCESS.value if isFailed else TransactionStatus.FAILURE.value
+        return TransactionStatus.SUCCESS.value if is_failed else TransactionStatus.FAILURE.value
 
-    def subscribeCommandCallback(self, function):
+    def subscribe_command_callback(self, function):
         self.callBackList[self.commandsTopic] = function
 
-    def subscribeConfigCallback(self, function):
+    def subscribe_config_callback(self, function):
         self.callBackList[self.configTopic] = function

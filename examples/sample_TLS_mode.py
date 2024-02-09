@@ -30,9 +30,9 @@ def command_callback(ack_client, message):
             print("edge_command_key :" + edge_command_key)
             print("value :" + value)
 
-        ack_client.publishCommandAck(correlation_id=correlation_id,
-                                     status_code=MqttConstants.CommandAckResponseCodes.SUCCESSFULLY_EXECUTED,
-                                     responseMessage="Command based task Executed.")
+        ack_client.publish_command_ack(correlation_id=correlation_id,
+                                       status_code=MqttConstants.CommandAckResponseCodes.SUCCESSFULLY_EXECUTED,
+                                       response_message="Command based task Executed.")
 
 
 def config_callback(ack_client, message):
@@ -43,25 +43,25 @@ def config_callback(ack_client, message):
         payload_data = payload["payload"]
         print("correlation_id :" + correlation_id)
         print("payload :" + str(payload_data))
-        ack_client.publishConfigAck(correlation_id=correlation_id,
-                                    status_code=MqttConstants.ConfigAckResponseCodes.SUCCESSFULLY_EXECUTED,
-                                    responseMessage="Config Executed.")
+        ack_client.publish_config_ack(correlation_id=correlation_id,
+                                      status_code=MqttConstants.ConfigAckResponseCodes.SUCCESSFULLY_EXECUTED,
+                                      response_message="Config Executed.")
 
 
 signal.signal(signal.SIGINT, handler)
-client = ZohoIoTClient(secureConnection=True)
-client.setLogger(loglevel="DEBUG")
-client.init(mqttUserName="<user name>", mqttPassword="<password>",
-            caCertificate="<ZohoIoTServerRootCA.pem file location>")
+client = ZohoIoTClient(secure_connection=True)
+client.set_logger(loglevel="DEBUG")
+client.init(mqtt_user_name="<user name>", mqtt_password="<password>",
+            ca_certificate="<ZohoIoTServerRootCA.pem file location>")
 
 rc = client.connect()
 
 if rc == 0:
-    client.subscribeCommandCallback(function=command_callback)
-    client.subscribeConfigCallback(function=config_callback)
+    client.subscribe_command_callback(function=command_callback)
+    client.subscribe_config_callback(function=config_callback)
     while True:
-        client.addDataPoint(key="temperature", value=35)
-        client.addDataPoint(key="humidity", value=70)
-        client.markDataPointAsError(key="pressure")
-        client.dispatchAsset(assetName="home")
+        client.add_data_point(key="temperature", value=35)
+        client.add_data_point(key="humidity", value=70)
+        client.mark_data_point_as_error(key="pressure")
+        client.dispatch_asset(asset_name="home")
         time.sleep(30)
