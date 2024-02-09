@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
 import logging
 
-from zoho_iot_sdk.MqttConstants import TransactionStatus, ClientStatus, CommandAckResponseCodes, ConfigAckResponseCodes
+from zoho_iot_sdk.MqttConstants import TransactionStatus, ClientStatus, CommandAckResponseCodes, ConfigAckResponseCodes, DEFAULT_PAYLOAD_SIZE, MAXIMUM_PAYLOAD_SIZE, MIN_RETRY_DELAY, MAX_RETRY_DELAY
 from os.path import exists
 import paho.mqtt.client as mqtt_client
 import json
 import threading
-import yaml
+
 
 
 class ZohoIoTClient:
     def __init__(self, secure_connection=False, use_client_certificates=False):
-        self.json_data = None
         self.mqttUserName = None
         self.mqttPassword = None
         self.hostname = None
         self.clientID = None
         self.port = None
+        self.payload_size = None
 
         self.caCertificate = None
         self.clientCertificate = None
@@ -39,9 +39,11 @@ class ZohoIoTClient:
         self.connectionEvent = threading.Event()
         self.subscribeEvent = threading.Event()
         self.callBackList = {}
+        self.autoreconnect=None
 
         self.pahoClient = None
         self.payloadJSON = {}
+        self.failedAck = {}
 
         self.logger = logging.getLogger(self.__module__ + "." + self.__class__.__name__)
         self.logger.setLevel(logging.DEBUG)
@@ -84,6 +86,13 @@ class ZohoIoTClient:
                 threading.Thread(target=self.resubscribe, args=()).start()
         self.clientStatus = ClientStatus.CONNECTED
         self.connectionEvent.set()
+        temp_dict = self.failedAck.copy()
+        for topic, ack_payload in self.failedAck:
+            rc = self.publish_with_topic(topic= topic, message=json.dumps(ack_payload))
+            if rc == 0:
+                self.logger.debug("Ack sent successfully in the topic %s",topic)
+                temp_dict.pop(topic)
+        self.failedAck = temp_dict.copy()
 
     def _on_publish(self, client, userdata, mid):
         self.connectionEvent.set()
@@ -193,16 +202,23 @@ class ZohoIoTClient:
             self.logger.error("Correlation ID or response Message can't be NULL or empty")
             return TransactionStatus.FAILURE.value
         ack_payload = {correlation_id: {"status_code": status_code.value, "response": response_message}}
-        return self.publish_with_topic(topic=topic, message=json.dumps(ack_payload))
+
+        rc = self.publish_with_topic(topic=topic, message=json.dumps(ack_payload))
+        if rc == 0:
+            return rc
+        if self.is_connected() == False:
+            self.logger.error("Error in publish ack due to lost connection")
+            self.clientStatus =  ClientStatus.DISCONNECTED
+            self.failedAck[topic] = ack_payload
 
     def validate_client_state(self):
         if self.clientStatus == ClientStatus.NOT_INITIALIZED:
             self.logger.error("Client must be initialized")
             return TransactionStatus.FAILURE.value
-        elif ClientStatus == ClientStatus.DISCONNECTED:
+        elif self.clientStatus == ClientStatus.DISCONNECTED:
             self.logger.debug("Connection to server is disconnected")
             return TransactionStatus.CONNECTION_ERROR.value
-        elif ClientStatus == ClientStatus.INITIALIZED:
+        elif self.clientStatus == ClientStatus.INITIALIZED:
             self.logger.debug("Client must be connected to HUB ")
             return TransactionStatus.FAILURE.value
         else:
@@ -220,25 +236,6 @@ class ZohoIoTClient:
             self.hostname = mqtt_user_name_array[1]
             self.clientID = mqtt_user_name_array[4]
             return True
-
-    def init_yaml_configuration(self, file):
-        if self.is_blank(file) and not exists(file.strip()):
-            self.logger.error("Location is blank or yaml file missing in the location")
-            return TransactionStatus.FAILURE.value
-        with open(file) as file:
-            configuration = yaml.full_load(file)
-        if configuration["ENABLE_TLS"]:
-            self.secureConnection = True
-        if configuration["USE_CLIENT_CERTS"]:
-            self.useClientCertificates = True
-        if configuration["LOG_LEVEL"] is not None:
-            self.set_logger(loglevel=configuration["LOG_LEVEL"])
-        if configuration["LOG_FILENAME"] is not None:
-            self.set_logger(filename=configuration["LOG_FILENAME"])
-        self.logger.debug("Configuration data:%s", configuration)
-        return self.init(mqtt_user_name=configuration['MQTT_USERNAME'], mqtt_password=configuration['MQTT_PASSWORD'],
-                         ca_certificate=configuration['CA_CRT'], client_certificate=configuration['CLIENT_CRT'],
-                         private_key=configuration['CLIENT_KEY'])
 
     def init(self, mqtt_user_name, mqtt_password='', ca_certificate=None, client_certificate=None, private_key=None,
              private_key_password=None):
@@ -260,6 +257,7 @@ class ZohoIoTClient:
         self.configAckTopic = str(self.configTopic) + "/ack"
         self.subscriptionTopicsList.append(self.commandsTopic)
         self.subscriptionTopicsList.append(self.configTopic)
+        self.payload_size = DEFAULT_PAYLOAD_SIZE
 
         if self.secureConnection:
             if self.is_blank(ca_certificate) or not exists(ca_certificate.strip()):
@@ -302,7 +300,7 @@ class ZohoIoTClient:
 
         if self.clientStatus == ClientStatus.CONNECTED and self.is_connected():
             self.logger.debug("already connected!")
-            return mqtt_client.CONNACK_ACCEPTED
+            return mqtt_client.CONNACK_ACCEPTED.value
 
         try:
             if self.pahoClient is None:
@@ -310,7 +308,8 @@ class ZohoIoTClient:
 
             # self.pahoClient.enable_logger(logging.DEBUG)
             self.pahoClient.username_pw_set(self.mqttUserName, self.mqttPassword)
-            self.pahoClient.reconnect_delay_set(min_delay=1, max_delay=1800)
+            if self.autoreconnect == True:
+                self.pahoClient.reconnect_delay_set(min_delay=MIN_RETRY_DELAY, max_delay=MAX_RETRY_DELAY)
             self.pahoClient._connect_timeout = 10
 
             if self.secureConnection:
@@ -349,6 +348,24 @@ class ZohoIoTClient:
             self.logger.error("Exception :", e)
             return TransactionStatus.FAILURE.value
 
+    def reconnect(self):
+        if self.autoreconnect == True:
+            self.logger.error("Auto reconnect is enabled so not able to reconnect manaly")
+            return -1
+        rc = self.connect()
+        if rc != 0:
+            self.logger.error("reconnection is failure")
+            return rc
+        self.logger.debug("reconnection is success")
+        temp_dict = self.failedAck.copy()
+        for topic, ack_payload in self.failedAck:
+            rc = self.publish_with_topic(topic= topic, message=json.dumps(ack_payload))
+            if rc == 0:
+                self.logger.debug("Ack sent successfully in the topic %s",topic)
+                temp_dict.pop(topic)
+        self.failedAck = temp_dict.copy()
+        return 0
+
     def add_data_point(self, key, value, asset_name=None):
         if self.is_blank(key):
             self.logger.error("Can't add empty key")
@@ -364,13 +381,16 @@ class ZohoIoTClient:
                 self.payloadJSON[asset_name] = value_object
         return TransactionStatus.SUCCESS.value
 
-    def add_json(self, json_data):
+    def add_json(self, key, json_data):
+        if self.is_blank(key):
+            self.logger.error("Can't add empty key")
+            return TransactionStatus.FAILURE.value
+
         if self.is_blank(json_data):
             logging.error("Can't add empty json")
             return TransactionStatus.FAILURE.value
         try:
-            parsed_data = json.loads(json_data)
-            self.json_data = parsed_data
+            self.payloadJSON[key] = json_data
             return TransactionStatus.SUCCESS.value
         except json.JSONDecodeError:
             logging.error("Invalid json ")
@@ -423,6 +443,9 @@ class ZohoIoTClient:
             return TransactionStatus.FAILURE
         if self.is_blank(message):
             self.logger.error("Message can't be blank")
+            return TransactionStatus.FAILURE
+        if len(message)> self.payload_size:
+            self.logger.error("client payload size is greater than maximum payload size. The payload size is %d",len(message))
             return TransactionStatus.FAILURE
         self.connectionEvent.clear()
         rc = self.pahoClient.publish(topic=topic, payload=message, qos=0, retain=False)
@@ -503,3 +526,23 @@ class ZohoIoTClient:
 
     def subscribe_config_callback(self, function):
         self.callBackList[self.configTopic] = function
+
+    def set_maximum_payload_size(self,size):
+        if size>MAXIMUM_PAYLOAD_SIZE:
+            self.logger.error("message payload size %d is greater than maximum payload size %d continues on maximum payload size",size,MAXIMUM_PAYLOAD_SIZE)
+            self.payload_size = MAXIMUM_PAYLOAD_SIZE
+            return TransactionStatus.FAILURE.value
+        elif size < DEFAULT_PAYLOAD_SIZE:
+            self.logger.error("message payload size %d is lesser than default payload size %d continues on default payload size",size,DEFAULT_PAYLOAD_SIZE)
+            self.payload_size = DEFAULT_PAYLOAD_SIZE
+            return TransactionStatus.FAILURE.value
+        else:
+            self.logger.debug("Message payload size is updated to the %d",size)
+            self.payload_size =size
+            return TransactionStatus.SUCCESS.value
+
+    def set_autoreconnect(self):
+        self.autoreconnect = True
+
+    def reset_autoreconnect(self):
+        self.autoreconnect = False
