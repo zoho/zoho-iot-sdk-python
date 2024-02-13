@@ -1,5 +1,5 @@
 import sys
-
+import logging
 sys.path.append(".")
 sys.path.append("..")
 sys.path.append("../..")
@@ -7,8 +7,12 @@ sys.path.append("../..")
 from zoho_iot_sdk import ZohoIoTClient
 
 client = ZohoIoTClient()
-client.set_logger(loglevel="DEBUG", filename="test.log")
-client.init(mqttUserName="<user name>", mqttPassword="<password>")
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+client.enable_logger(logger,filename="test.log")
+
+client.init(mqtt_user_name="<user name>", mqtt_password="<password>")
 rc = client.connect()
 
 if rc == 0:
@@ -19,4 +23,4 @@ if rc == 0:
     client.dispatch_asset(asset_name="home")
     client.disconnect()
 else:
-    print("unable to establish connection: " + rc)
+    print("unable to establish connection: " + str(rc))
