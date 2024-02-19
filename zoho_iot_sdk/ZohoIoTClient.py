@@ -8,7 +8,6 @@ import json
 import threading
 
 
-
 class ZohoIoTClient:
     def __init__(self, secure_connection=False, use_client_certificates=False):
         self.mqttUserName = None
@@ -48,17 +47,23 @@ class ZohoIoTClient:
 
     def enable_logger(self,logger=None,filename=None):
         if logger is None:
-            return
+            return False
         self.logger = logger
         if not self.is_blank(filename):
             f_handler = logging.FileHandler(filename)
             f_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
             f_handler.setFormatter(f_format)
             self.logger.addHandler(f_handler)
+        return True
 
     @staticmethod
     def is_blank(data):
-        if data is not None and data.strip() != "":
+        if isinstance(data, str) and data is not None and data.strip() != "":
+            return False
+        return True
+    
+    def is_json_blank(self,json_data):
+        if isinstance(json_data,dict) and bool(json_data):
             return False
         return True
 
@@ -83,7 +88,7 @@ class ZohoIoTClient:
         self.clientStatus = ClientStatus.CONNECTED
         self.connectionEvent.set()
         temp_dict = self.failedAck.copy()
-        for topic, ack_payload in self.failedAck:
+        for topic, ack_payload in self.failedAck.items():
             rc = self.publish_with_topic(topic= topic, message=json.dumps(ack_payload))
             if rc == 0:
                 self.log_debug("Ack sent successfully in the topic %s",topic)
@@ -119,16 +124,30 @@ class ZohoIoTClient:
         return self.pahoClient.is_connected()
 
     def handle_command(self, message):
-        self.send_first_ack(message=message.payload, topic=self.commandsAckTopic,
+        rc = self.send_first_ack(message=message.payload, topic=self.commandsAckTopic,
                             ack_code=CommandAckResponseCodes.COMMAND_RECEIVED_ACK_CODE)
+        if rc != 0:
+            self.log_error("sending first acknowledgement for handle_command failed")
+            return -1
         if self.commandsTopic in self.callBackList:
             threading.Thread(target=self.callBackList[self.commandsTopic], args=(self, message,)).start()
+            #for test_case
+            return 0
+        self.log_error("No callback is registered for the topic %s",self.commandsTopic)
+        return -1
 
     def handle_config(self, message):
-        self.send_first_ack(message=message.payload, topic=self.configAckTopic,
+        rc = self.send_first_ack(message=message.payload, topic=self.configAckTopic,
                             ack_code=ConfigAckResponseCodes.CONFIG_RECEIVED_ACK_CODE)
+        if rc!= 0:
+            self.log_error("sending first acknowledgement for handle_config failed")
+            return -1
         if self.configTopic in self.callBackList:
             threading.Thread(target=self.callBackList[self.configTopic], args=(self, message,)).start()
+            #for test_case
+            return 0
+        self.log_error("No callback is registered for the topic %s",self.commandsTopic)
+        return -1
 
     def send_first_ack(self, message, topic, ack_code):
         commands_list = json.loads(message)
@@ -183,14 +202,14 @@ class ZohoIoTClient:
         if status_code not in CommandAckResponseCodes:
             self.log_error("Invalid status code")
             return TransactionStatus.FAILURE.value
-        self.publish_ack(topic=self.commandsAckTopic, correlation_id=correlation_id, status_code=status_code,
+        return self.publish_ack(topic=self.commandsAckTopic, correlation_id=correlation_id, status_code=status_code,
                          response_message=response_message)
 
     def publish_config_ack(self, correlation_id, status_code, response_message):
         if status_code not in ConfigAckResponseCodes:
             self.log_error("Invalid status code")
             return TransactionStatus.FAILURE.value
-        self.publish_ack(topic=self.configAckTopic, correlation_id=correlation_id, status_code=status_code,
+        return self.publish_ack(topic=self.configAckTopic, correlation_id=correlation_id, status_code=status_code,
                          response_message=response_message)
 
     def publish_ack(self, topic, correlation_id, status_code, response_message):
@@ -206,6 +225,7 @@ class ZohoIoTClient:
             self.log_error("Error in publish ack due to lost connection")
             self.clientStatus =  ClientStatus.DISCONNECTED
             self.failedAck[topic] = ack_payload
+        return rc
 
     def validate_client_state(self):
         if self.clientStatus == ClientStatus.NOT_INITIALIZED:
@@ -296,13 +316,12 @@ class ZohoIoTClient:
 
         if self.clientStatus == ClientStatus.CONNECTED and self.is_connected():
             self.log_debug("already connected!")
-            return mqtt_client.CONNACK_ACCEPTED.value
+            return mqtt_client.CONNACK_ACCEPTED
 
         try:
             if self.pahoClient is None:
                 self.pahoClient = mqtt_client.Client(client_id=self.clientID, clean_session=True, protocol=4)
 
-            # self.pahoClient.enable_logger(logging.DEBUG)
             self.pahoClient.username_pw_set(self.mqttUserName, self.mqttPassword)
             if self.autoreconnect == True:
                 self.pahoClient.reconnect_delay_set(min_delay=MIN_RETRY_DELAY, max_delay=MAX_RETRY_DELAY)
@@ -354,7 +373,7 @@ class ZohoIoTClient:
             return rc
         self.log_debug("reconnection is success")
         temp_dict = self.failedAck.copy()
-        for topic, ack_payload in self.failedAck:
+        for topic, ack_payload in self.failedAck.items():
             rc = self.publish_with_topic(topic= topic, message=json.dumps(ack_payload))
             if rc == 0:
                 self.log_debug("Ack sent successfully in the topic %s",topic)
@@ -382,7 +401,7 @@ class ZohoIoTClient:
             self.log_error("Can't add empty key")
             return TransactionStatus.FAILURE.value
 
-        if self.is_blank(json_data):
+        if self.is_json_blank(json_data):
             logging.error("Can't add empty json")
             return TransactionStatus.FAILURE.value
         try:
@@ -402,6 +421,9 @@ class ZohoIoTClient:
         return rc
 
     def publish(self, message_string):
+        if self.is_json_blank(message_string):
+            self.log_error("publish messge is invalid or empty")
+            return TransactionStatus.FAILURE.value
         rc = self.publish_with_topic(topic=self.dataTopic, message=json.dumps(message_string))
         if rc == 0:
             self.payloadJSON = {}
@@ -410,7 +432,7 @@ class ZohoIoTClient:
     def dispatch_event(self, event_type=None, event_description=None, event_data_keymap=None, asset_name=None):
         if self.is_blank(event_type) or self.is_blank(event_description) or event_data_keymap is None:
             self.log_error("Can't append NULL arguments to Event.")
-            return TransactionStatus.FAILURE
+            return TransactionStatus.FAILURE.value
         payload = {}
         if not self.is_blank(event_type):
             payload["eventType"] = event_type
@@ -419,14 +441,15 @@ class ZohoIoTClient:
         if event_data_keymap is not None:
             payload["eventData"] = event_data_keymap
         if self.is_blank(asset_name):
-            return self.publish_with_topic(topic=self.dataTopic, message=json.dumps(payload))
+            return self.publish_with_topic(topic=self.eventTopic, message=json.dumps(payload))
         else:
-            return self.dispatch_asset(asset_name)
+            payload_temp = (asset_name, payload)
+            return self.publish_with_topic(topic=self.eventTopic, message=json.dumps(payload_temp))
 
     def dispatch_asset(self, asset_name):
         if self.is_blank(asset_name):
             self.log_error("Asset Name can't be null")
-            return TransactionStatus.FAILURE
+            return TransactionStatus.FAILURE.value
         payload = {asset_name: self.payloadJSON}
         rc = self.publish_with_topic(topic=self.dataTopic, message=json.dumps(payload))
         if rc == 0:
@@ -436,18 +459,23 @@ class ZohoIoTClient:
     def publish_with_topic(self, topic, message):
         if self.is_blank(topic):
             self.log_error("Topic can't be blank")
-            return TransactionStatus.FAILURE
+            return TransactionStatus.FAILURE.value
         if self.is_blank(message):
             self.log_error("Message can't be blank")
-            return TransactionStatus.FAILURE
+            return TransactionStatus.FAILURE.value
+
         if len(message)> self.payload_size:
             self.log_error("client payload size is greater than maximum payload size. The payload size is %d",len(message))
-            return TransactionStatus.FAILURE
+            return TransactionStatus.FAILURE.value
+        client_state = self.validate_client_state()
+        if client_state != 0:
+            self.log_error("Client is not in connected state")
+            return TransactionStatus.FAILURE.value
         self.connectionEvent.clear()
         rc = self.pahoClient.publish(topic=topic, payload=message, qos=0, retain=False)
         if not self.connectionEvent.wait(timeout=10):
             self.log_error("Publish timeout, unable to publish message")
-            return TransactionStatus.FAILURE
+            return TransactionStatus.FAILURE.value
 
         if rc[0] == 0:
             self.log_info("Message published successfully")
@@ -495,7 +523,8 @@ class ZohoIoTClient:
             return TransactionStatus.FAILURE.value
 
         client_state = self.validate_client_state()
-        if client_state != 0 or not self.is_connected():
+        if client_state != 0:
+            self.log_error("Client is not in connected state")
             return TransactionStatus.FAILURE.value
 
         is_failed = False
@@ -515,7 +544,7 @@ class ZohoIoTClient:
                     is_failed = True
                     self.log_error("Invalid topic:%s", Topic)
 
-        return TransactionStatus.SUCCESS.value if is_failed else TransactionStatus.FAILURE.value
+        return TransactionStatus.FAILURE.value if is_failed else TransactionStatus.SUCCESS.value
 
     def subscribe_command_callback(self, function):
         self.callBackList[self.commandsTopic] = function
