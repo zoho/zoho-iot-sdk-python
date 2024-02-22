@@ -1,4 +1,5 @@
 import sys
+import logging
 
 sys.path.append(".")
 sys.path.append("..")
@@ -50,7 +51,11 @@ def config_callback(ack_client, message):
 
 signal.signal(signal.SIGINT, handler)
 client = ZohoIoTClient(secure_connection=True)
-client.set_logger(loglevel="DEBUG")
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+client.enable_logger(logger,filename="test.log")
+
 client.init(mqtt_user_name="<user name>", mqtt_password="<password>",
             ca_certificate="<ZohoIoTServerRootCA.pem file location>")
 

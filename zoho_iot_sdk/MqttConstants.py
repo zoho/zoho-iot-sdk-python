@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 from enum import Enum, auto
 
+DEFAULT_PAYLOAD_SIZE = 32000
+MAXIMUM_PAYLOAD_SIZE = 100000
+MIN_RETRY_DELAY = 1
+MAX_RETRY_DELAY =1800
 
 class TransactionStatus(Enum):
     SUCCESS = 0
