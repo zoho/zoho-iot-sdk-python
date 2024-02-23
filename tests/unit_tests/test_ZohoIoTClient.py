@@ -314,7 +314,7 @@ class MainTestCases(unittest.TestCase):
     def test_connect_when_connection_successful_return_success(self):
         
         client.init("/___/___/USER_NAME/___/___","password")
-        client.set_autoreconnect()
+        client.set_autoreconnect(True)
         patcher1 = mock.patch.object(mqtt_client.Client,"connect")
         patcher2 = mock.patch.object(mqtt_client.Client,"loop_start")
         patcher3 = mock.patch.object(threading.Event,"wait")
@@ -334,7 +334,7 @@ class MainTestCases(unittest.TestCase):
     def test_connect_when_connection_fails_return_failure(self):
 
         client.init("/___/___/USER_NAME/___/___","password")
-        client.set_autoreconnect()
+        client.set_autoreconnect(True)
         patcher1 = mock.patch.object(mqtt_client.Client,"connect")
         patcher2 = mock.patch.object(mqtt_client.Client,"loop_start")
         patcher3 = mock.patch.object(threading.Event,"wait")
@@ -361,7 +361,7 @@ class MainTestCases(unittest.TestCase):
     #reconnect()
     def test_reconnect_with_proper_arguments_should_success(self):
         client.init("/___/___/USER_NAME/___/___","password")
-        client.reset_autoreconnect()
+        client.set_autoreconnect(False)
         patcher1 = mock.patch.object(mqtt_client.Client,"connect")
         patcher2 = mock.patch.object(mqtt_client.Client,"loop_start")
         patcher3 = mock.patch.object(threading.Event,"wait")
@@ -382,7 +382,7 @@ class MainTestCases(unittest.TestCase):
     def test_reconnect_with_proper_arguments_resend_failed_ack_should_success(self):
 
         client.init("/___/___/USER_NAME/___/___","password")
-        client.reset_autoreconnect()
+        client.set_autoreconnect(False)
         client.pahoClient = mqtt_client.Client()
         patcher1 = mock.patch.object(mqtt_client.Client,"connect")
         patcher2 = mock.patch.object(mqtt_client.Client,"loop_start")
@@ -413,7 +413,7 @@ class MainTestCases(unittest.TestCase):
     def test_reconnect_when_auto_reconnect_is_enabled_the_calling_reconnect_should_fail(self):
 
         client.init("/___/___/USER_NAME/___/___","password")
-        client.set_autoreconnect()
+        client.set_autoreconnect(True)
         
         result = client.reconnect()
         self.assertEqual(result,-1)
