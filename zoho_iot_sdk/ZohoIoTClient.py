@@ -38,7 +38,7 @@ class ZohoIoTClient:
         self.connectionEvent = threading.Event()
         self.subscribeEvent = threading.Event()
         self.callBackList = {}
-        self.autoreconnect=None
+        self.autoreconnect=True
 
         self.pahoClient = None
         self.payloadJSON = {}
@@ -566,8 +566,5 @@ class ZohoIoTClient:
             self.payload_size =size
             return TransactionStatus.SUCCESS.value
 
-    def set_autoreconnect(self):
-        self.autoreconnect = True
-
-    def reset_autoreconnect(self):
-        self.autoreconnect = False
+    def set_autoreconnect(self,value):#value is boolean(True or False)
+        self.autoreconnect = value
