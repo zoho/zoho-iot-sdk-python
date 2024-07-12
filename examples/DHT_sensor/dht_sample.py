@@ -13,10 +13,17 @@ sys.path.append("../..")
 
 # Import the Zoho IoT SDK
 from zoho_iot_sdk import ZohoIoTClient, MqttConstants
+MQTT_USER_NAME="<user name>"
+MQTT_PASSWORD="<password>"
+CA_CERTIFICATE="<ZohoIoTServerRootCA.pem file location>"
 
 # Create an instance of the ZohoIoTClient with secure connection
 client = ZohoIoTClient(secure_connection=True)
 
+sensor = adafruit_dht.DHT22(board.D4)
+# Initialize the DHT22 sensor (data pin connected to GPIO 4)
+# Uncomment the following line to use the DHT11 sensor instead
+# sensor = adafruit_dht.DHT11(board.D4)
 
 # Define a signal handler to cleanly disconnect and exit on SIGINT (Ctrl+C)
 def handler(sig, frame):
@@ -28,19 +35,14 @@ def main():
     # Register the signal handler for SIGINT
     signal.signal(signal.SIGINT, handler)
 
-    # Initialize the DHT22 sensor (data pin connected to GPIO 4)
-    sensor = adafruit_dht.DHT22(board.D4)
-    # Uncomment the following line to use the DHT11 sensor instead
-    # sensor = adafruit_dht.DHT11(board.D4)
-
     # Set up logging
     logging.basicConfig(level=logging.DEBUG)
     logger = logging.getLogger(__name__)
     client.enable_logger(logger, filename="dht_sample.log")
 
     # Initialize the Zoho IoT client with MQTT credentials and CA certificate
-    client.init(mqtt_user_name="<user name>", mqtt_password="<password>",
-                ca_certificate="<ZohoIoTServerRootCA.pem file location>")
+    client.init(MQTT_USER_NAME, MQTT_PASSWORD,
+                CA_CERTIFICATE)
 
     # Attempt to connect to the MQTT server
     rc = client.connect()
@@ -58,7 +60,7 @@ def main():
                 client.add_data_point(key="humidity", value=humidity)
 
                 # Dispatch the data points to the asset named "room"
-                client.dispatch_asset(asset_name="room")
+                client.dispatch()
             except RuntimeError as error:
                 # Handle common sensor reading errors by retrying after a short delay
                 print(error.args[0])

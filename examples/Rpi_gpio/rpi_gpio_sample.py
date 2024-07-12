@@ -13,6 +13,9 @@ sys.path.append("../..")
 
 # Import the Zoho IoT SDK
 from zoho_iot_sdk import ZohoIoTClient, MqttConstants
+MQTT_USER_NAME="<user name>"
+MQTT_PASSWORD="<password>"
+CA_CERTIFICATE="<ZohoIoTServerRootCA.pem file location>"
 
 # Create an instance of the ZohoIoTClient with secure connection
 client = ZohoIoTClient(secure_connection=True)
@@ -62,7 +65,7 @@ def handle_interrupt():
             # Update the interrupt state
             client.add_data_point(key="interrupt", value=current_value)
             # Dispatch the data points to the asset named "room"
-            client.dispatch_asset(asset_name="room")
+            client.dispatch()
             previous_value = current_value
         time.sleep(0.5)
 
@@ -109,8 +112,8 @@ def main():
     interrupt_line.request(consumer="Interrupt", type=gpiod.LINE_REQ_DIR_IN, flags=gpiod.LINE_REQ_FLAG_BIAS_PULL_DOWN)
 
     # Initialize the Zoho IoT client with MQTT credentials and CA certificate
-    client.init(mqtt_user_name="<user name>", mqtt_password="<password>",
-                ca_certificate="<ZohoIoTServerRootCA.pem file location>")
+    client.init(MQTT_USER_NAME, MQTT_PASSWORD,
+                CA_CERTIFICATE)
 
     # Attempt to connect to the MQTT server
     rc = client.connect()
@@ -125,7 +128,7 @@ def main():
                 # Update the switch state
                 client.add_data_point(key="switch", value=switch_line.get_value())
                 # Dispatch the data points to the asset named "room"
-                client.dispatch_asset(asset_name="room")
+                client.dispatch()
             except Exception as error:
                 logger.error(error)
 

@@ -7,6 +7,8 @@ from os.path import exists
 import paho.mqtt.client as mqtt_client
 import json
 import threading
+import platform
+import re
 
 
 class ZohoIoTClient:
@@ -21,6 +23,8 @@ class ZohoIoTClient:
         self.agentName = None
         self.agentVersion = None
         self.platformName = None
+        self.osName = None
+        self.osVersion = None
 
         self.caCertificate = None
         self.clientCertificate = None
@@ -324,17 +328,53 @@ class ZohoIoTClient:
     def set_agentName_and_Version(self,name=None,version=None):
         if self.is_blank(name) or self.is_blank(version):
             self.log_error("Agent name or version is invalid")
-            return TransactionStatus.FAILURE.value
+            return False
         self.agentName = name
         self.agentVersion = version
-        return TransactionStatus.SUCCESS.value
+        return True
     
     def set_platform_name(self,platformName=None):
         if self.is_blank(platformName):
             self.log_error("Platform name is invalid")
-            return TransactionStatus.FAILURE.value
+            return False
         self.platformName = platformName
-        return TransactionStatus.SUCCESS.value
+        return True
+
+    def get_os_info(self):
+        platform_info = platform.platform()
+        system = platform.system()
+
+        if system == 'Darwin':
+            # macOS
+            mac_version_match = re.search(r'macOS-(\d+\.\d+)', platform_info)
+            if mac_version_match:
+                os_name = 'macOS'
+                os_version = mac_version_match.group(1)
+            else:
+                os_name = 'macOS'
+                os_version = 'Unknown'
+        elif system == 'Windows':
+            # Windows
+            os_name = 'Windows'
+            os_version = platform.release()
+        else:
+            # Unix-like system (Linux, etc.)
+            os_name = 'Unknown Unix-like'
+            os_version = 'Unknown'
+            try:
+                with open('/etc/os-release') as f:
+                    lines = f.readlines()
+                    for line in lines:
+                        if line.startswith('NAME='):
+                            os_name = line.split('=')[1].strip().strip('"')
+                        elif line.startswith('VERSION='):
+                            os_version = line.split('=')[1].strip().strip('"')
+            except FileNotFoundError:
+                pass
+                return False
+        self.osName = os_name
+        self.osVersion = os_version
+        return True
 
     def form_connection_string(self, mqttUserName):
         self.connection_string = ""
@@ -346,6 +386,10 @@ class ZohoIoTClient:
             self.connection_string = self.connection_string + "agent_version" + "=" + self.agentVersion +"&"
         if not self.is_blank(self.platformName):
             self.connection_string = self.connection_string + "agent_platform" + "=" + self.platformName + "&"
+
+        if self.get_os_info() and not self.is_blank(self.osName) and not self.is_blank(self.osVersion):
+            self.connection_string = self.connection_string + "os_name" + "=" + self.osName +"&"
+            self.connection_string = self.connection_string + "os_version" + "=" + self.osVersion +"&"
         return self.connection_string
 
     def connect(self):
@@ -424,14 +468,14 @@ class ZohoIoTClient:
     def add_event_data_point(self, key, value):
         if self.is_blank(key):
             self.log_error("Can't add empty key")
-            return TransactionStatus.FAILURE.value
+            return False
         self.eventJSON[key] = value
-        return TransactionStatus.SUCCESS.value
+        return True
 
     def add_data_point(self, key, value, asset_name=None):
         if self.is_blank(key):
             self.log_error("Can't add empty key")
-            return TransactionStatus.FAILURE.value
+            return False
 
         if self.is_blank(asset_name):
             self.payloadJSON[key] = value
@@ -441,22 +485,21 @@ class ZohoIoTClient:
             else:
                 value_object = {key: value}
                 self.payloadJSON[asset_name] = value_object
-        return TransactionStatus.SUCCESS.value
+        return True
 
     def add_json(self, key, json_data):
         if self.is_blank(key):
             self.log_error("Can't add empty key")
-            return TransactionStatus.FAILURE.value
-
+            return False
         if self.is_json_blank(json_data):
             logging.error("Can't add empty json")
-            return TransactionStatus.FAILURE.value
+            return False
         try:
             self.payloadJSON[key] = json_data
-            return TransactionStatus.SUCCESS.value
+            return True
         except json.JSONDecodeError:
             logging.error("Invalid json ")
-        return TransactionStatus.FAILURE.value
+        return False
 
     def mark_data_point_as_error(self, key, asset_name=None):
         return self.add_data_point(key=key, value="<ERROR>", asset_name=asset_name)
@@ -598,15 +641,15 @@ class ZohoIoTClient:
         if size>MAXIMUM_PAYLOAD_SIZE:
             self.log_error("message payload size %d is greater than maximum payload size %d continues on maximum payload size",size,MAXIMUM_PAYLOAD_SIZE)
             self.payload_size = MAXIMUM_PAYLOAD_SIZE
-            return TransactionStatus.FAILURE.value
+            return False
         elif size < DEFAULT_PAYLOAD_SIZE:
             self.log_error("message payload size %d is lesser than default payload size %d continues on default payload size",size,DEFAULT_PAYLOAD_SIZE)
             self.payload_size = DEFAULT_PAYLOAD_SIZE
-            return TransactionStatus.FAILURE.value
+            return False
         else:
             self.log_debug("Message payload size is updated to the %d",size)
             self.payload_size =size
-            return TransactionStatus.SUCCESS.value
+            return True
 
     def set_autoreconnect(self,value):#value is boolean(True or False)
         self.autoreconnect = value

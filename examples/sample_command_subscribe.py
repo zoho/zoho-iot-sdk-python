@@ -10,7 +10,9 @@ sys.path.append("..")
 sys.path.append("../..")
 
 from zoho_iot_sdk import ZohoIoTClient, MqttConstants
-
+MQTT_USER_NAME="<user name>"
+MQTT_PASSWORD="<password>"
+CA_CERTIFICATE="<ZohoIoTServerRootCA.pem file location>"
 
 def handler(sig, frame):
     client.disconnect()
@@ -89,8 +91,8 @@ if __name__ == "__main__":
     logger = logging.getLogger(__name__)
     client.enable_logger(logger, filename="sample_command_subscribe.log")
 
-    client.init(mqtt_user_name="<user name>", mqtt_password="<password>",
-                ca_certificate="<ZohoIoTServerRootCA.pem file location>")
+    client.init(MQTT_USER_NAME, MQTT_PASSWORD,
+                CA_CERTIFICATE)
 
     rc = client.connect()
 
