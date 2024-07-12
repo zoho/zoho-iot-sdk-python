@@ -1,15 +1,15 @@
 import sys
 import logging
+import json
+import time
+import signal
+from os.path import exists
 
 sys.path.append(".")
 sys.path.append("..")
 sys.path.append("../..")
 
-import json
-import time
-import signal
 from zoho_iot_sdk import ZohoIoTClient, MqttConstants
-from os.path import exists
 
 
 def handler(sig, frame):
@@ -87,7 +87,7 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=logging.DEBUG)
     logger = logging.getLogger(__name__)
-    client.enable_logger(logger,filename="test.log")
+    client.enable_logger(logger, filename="sample_command_subscribe.log")
 
     client.init(mqtt_user_name="<user name>", mqtt_password="<password>",
                 ca_certificate="<ZohoIoTServerRootCA.pem file location>")
@@ -101,5 +101,5 @@ if __name__ == "__main__":
             client.add_data_point(key="temperature", value=35)
             client.add_data_point(key="humidity", value=70)
             client.mark_data_point_as_error(key="pressure")
-            client.dispatch_asset(asset_name="home")
+            client.dispatch()
             time.sleep(interval)
