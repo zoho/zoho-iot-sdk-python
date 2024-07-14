@@ -1,14 +1,18 @@
 import sys
 import logging
+import json
+import time
+import signal
 
 sys.path.append(".")
 sys.path.append("..")
 sys.path.append("../..")
 
-import json
-import time
-import signal
 from zoho_iot_sdk import ZohoIoTClient, MqttConstants
+MQTT_USER_NAME="<user name>"
+CA_CERTIFICATE="<ZohoIoTServerRootCA.pem file location>"
+CLIENT_CERTIFICATE="<Certificate_name.cert.pem file location>"
+PRIVATE_KEY="<Certificate_name.private.key file location>"
 
 
 def handler(sig, frame):
@@ -54,13 +58,12 @@ client = ZohoIoTClient(secure_connection=True, use_client_certificates=True)
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
-client.enable_logger(logger,filename="test.log")
+client.enable_logger(logger, filename="sample_TLS_client_mode.log")
 
-
-client.init(mqtt_user_name="<user name>",
-            ca_certificate="<ZohoIoTServerRootCA.pem file location>",
-            client_certificate="<Certificate_name.cert.pem file location>",
-            private_key="<Certificate_name.private.key file location>")
+client.init(MQTT_USER_NAME,
+            CA_CERTIFICATE,
+            CLIENT_CERTIFICATE,
+            PRIVATE_KEY)
 rc = client.connect()
 
 if rc == 0:
