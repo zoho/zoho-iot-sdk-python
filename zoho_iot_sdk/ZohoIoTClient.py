@@ -3,7 +3,7 @@ import logging
 
 from zoho_iot_sdk.MqttConstants import *
 from zoho_iot_sdk.version import *
-from os.path import exists
+import os.path as path
 import paho.mqtt.client as mqtt_client
 import json
 import threading
@@ -164,15 +164,7 @@ class ZohoIoTClient:
         ack_payload = {}
         for i in range(len(commands_list)):
             correlation_id = commands_list[i]["correlation_id"]
-            if "is_new_config" in commands_list[i]:
-                new_config = commands_list[i]["is_new_config"]
-                if new_config :
-                    ack_payload[correlation_id] = {"status_code": ack_code.value,"response": "","is_new_config":True}
-                else:
-                    ack_payload[correlation_id] = {"status_code": ack_code.value,"response": "","is_new_config":False}
-
-            else:
-                ack_payload[correlation_id] = {"status_code": ack_code.value,"response": ""}
+            ack_payload[correlation_id] = {"status_code": ack_code.value,"response": ""}
         return self.publish_with_topic(topic=topic, message=json.dumps(ack_payload))
 
     def publish_command_ack_list(self, payload_json):
@@ -233,7 +225,10 @@ class ZohoIoTClient:
         if self.is_blank(correlation_id) or response_message is None:
             self.log_error("Correlation ID or response Message can't be NULL or empty")
             return TransactionStatus.FAILURE.value
-        ack_payload = {correlation_id: {"status_code": status_code.value, "response": response_message}}
+        if(topic == self.configAckTopic):
+            ack_payload = {correlation_id: {"status_code": status_code.value, "response": response_message,"is_new_config":False}}
+        else:
+            ack_payload = {correlation_id: {"status_code": status_code.value, "response": response_message}}
 
         rc = self.publish_with_topic(topic=topic, message=json.dumps(ack_payload))
         if rc == 0:
@@ -293,15 +288,15 @@ class ZohoIoTClient:
         self.payload_size = DEFAULT_PAYLOAD_SIZE
 
         if self.secureConnection:
-            if self.is_blank(ca_certificate) or not exists(ca_certificate.strip()):
+            if self.is_blank(ca_certificate) or not path.exists(ca_certificate.strip()):
                 self.log_error("CAFile file is not found/ empty or can't be accessed.")
                 return TransactionStatus.FAILURE.value
 
             self.caCertificate = ca_certificate.strip()
 
             if self.useClientCertificates:
-                if ((self.is_blank(client_certificate) or not exists(client_certificate.strip())) or (
-                        self.is_blank(private_key) or not exists(private_key.strip()))):
+                if ((self.is_blank(client_certificate) or not path.exists(client_certificate.strip())) or (
+                        self.is_blank(private_key) or not path.exists(private_key.strip()))):
                     self.log_error("ClientCertificate / PrivateKey file is not found or empty or can't be accessed.")
                     return TransactionStatus.FAILURE.value
                 self.clientCertificate = client_certificate.strip()

@@ -1,12 +1,12 @@
 import unittest
 import json
-from os.path import exists
 import threading
 from unittest import mock
 import logging
 from zoho_iot_sdk.ZohoIoTClient import ZohoIoTClient
 from zoho_iot_sdk.MqttConstants import TransactionStatus, ClientStatus, CommandAckResponseCodes, ConfigAckResponseCodes, DEFAULT_PAYLOAD_SIZE, MAXIMUM_PAYLOAD_SIZE, MIN_RETRY_DELAY, MAX_RETRY_DELAY
 import paho.mqtt.client as mqtt_client
+import os.path as path
 from unittest.mock import patch
 from zoho_iot_sdk.version import VERSION
 
@@ -89,11 +89,13 @@ class MainTestCases(unittest.TestCase):
             non_tls_client.init()
 
     #tls
-    @patch('zoho_iot_sdk.ZohoIoTClient.exists', return_value=True)
-    def test_init_tls_mode_with_proper_arguments_should_success(self,mock_exists):
-
+    def test_init_tls_mode_with_proper_arguments_should_success(self):
+        patcher1 = mock.patch.object(path,"exists")
+        mock_exists = patcher1.start()
+        mock_exists.return_value = True
         result = tls_client.init("/___/___/USER_NAME/___/___","password",ca_certificate = "path/to/root_ca")
         self.assertEqual(result,0)
+        patcher1.stop()
 
 
     def test_init_tls_mode_with_improper_arguments_should_fail(self):
@@ -121,13 +123,16 @@ class MainTestCases(unittest.TestCase):
             tls_client.init(mqtt_password="password",ca_certificate = "path/to/root_ca")
 
     #tls_client_certificate_mode
-    @patch('zoho_iot_sdk.ZohoIoTClient.exists', return_value=True)
-    def test_int_tls_client_certificate_mode_with_proper_arguments_should_success(self,mock_exists):
+    def test_int_tls_client_certificate_mode_with_proper_arguments_should_success(self):
 
+        patcher1 = mock.patch.object(path,"exists")
+        mock_exists = patcher1.start()
+        mock_exists.return_value = True
         result = tls_client_certificat.init("/___/___/USER_NAME/___/___","password",ca_certificate="path/to/root_ca",client_certificate="path/to/client_certificate",private_key="path/to/private_key")
         self.assertEqual(result,0)
         result = tls_client_certificat.init(mqtt_user_name="/___/___/USER_NAME/___/___",ca_certificate="path/to/root_ca",client_certificate="path/to/client_certificate",private_key="path/to/private_key")
         self.assertEqual(result,0)
+        patcher1.stop
 
     def test_init_tls_client_certificate_mode_with_improper_arguments_should_fail(self):
         
@@ -1202,14 +1207,6 @@ class MainTestCases(unittest.TestCase):
 
         client.clientStatus = ClientStatus.CONNECTED
         message = '[{"payload":[{"edge_command_key":"${light.MODBUS}","value":"on"}],"command_name":"light","correlation_id":"143c5dc0-aabf-11ee-b726-5354005d2854"}]'
-        result = client.send_first_ack(message,"topic",ConfigAckResponseCodes.CONFIG_RECEIVED_ACK_CODE)
-        self.assertEqual(result,0)
-
-        message = '[{"payload":[{"edge_command_key":"${light.MODBUS}","value":"on"}],"command_name":"light","correlation_id":"143c5dc0-aabf-11ee-b726-5354005d2854","is_new_config": false}]'
-        result = client.send_first_ack(message,"topic",ConfigAckResponseCodes.CONFIG_RECEIVED_ACK_CODE)
-        self.assertEqual(result,0)
-
-        message = '[{"payload":[{"edge_command_key":"${light.MODBUS}","value":"on"}],"command_name":"light","correlation_id":"143c5dc0-aabf-11ee-b726-5354005d2854","is_new_config": false}]'
         result = client.send_first_ack(message,"topic",ConfigAckResponseCodes.CONFIG_RECEIVED_ACK_CODE)
         self.assertEqual(result,0)
 
