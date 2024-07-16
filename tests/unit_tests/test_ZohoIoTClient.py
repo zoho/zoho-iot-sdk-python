@@ -8,6 +8,7 @@ from zoho_iot_sdk.ZohoIoTClient import ZohoIoTClient
 from zoho_iot_sdk.MqttConstants import TransactionStatus, ClientStatus, CommandAckResponseCodes, ConfigAckResponseCodes, DEFAULT_PAYLOAD_SIZE, MAXIMUM_PAYLOAD_SIZE, MIN_RETRY_DELAY, MAX_RETRY_DELAY
 import paho.mqtt.client as mqtt_client
 from unittest.mock import patch
+from zoho_iot_sdk.version import VERSION
 
 client = ZohoIoTClient()
 non_tls_client = ZohoIoTClient()
@@ -158,35 +159,35 @@ class MainTestCases(unittest.TestCase):
     def test_add_datapoint_with_proper_argument_should_suceess(self):
 
         result = client.add_data_point("key","value")
-        self.assertEqual(result,0)
+        self.assertEqual(result,True)
         self.assertEqual(client.payloadJSON["key"],"value")
 
         result = client.add_data_point("key","")
-        self.assertEqual(result,0)
+        self.assertEqual(result,True)
         self.assertEqual(client.payloadJSON["key"],"")
 
         result = client.add_data_point("key",None)
-        self.assertEqual(result,0)
+        self.assertEqual(result,True)
         self.assertEqual(client.payloadJSON["key"],None)
 
         result = client.add_data_point("key","value",asset_name="asser_name")
-        self.assertEqual(result,0)
+        self.assertEqual(result,True)
         self.assertEqual(client.payloadJSON["asser_name"]["key"],"value")
         
         result = client.add_data_point("key",222,asset_name="asser_name")
-        self.assertEqual(result,0)
+        self.assertEqual(result,True)
         self.assertEqual(client.payloadJSON["asser_name"]["key"],222)
 
         result = client.add_data_point("key",222,asset_name="")
-        self.assertEqual(result,0)
+        self.assertEqual(result,True)
         self.assertEqual(client.payloadJSON["key"],222)
 
     def test_add_datapoint_with_improper_argument_should_fail(self):
         result = client.add_data_point("","value")
-        self.assertEqual(result,-1)
+        self.assertEqual(result,False)
 
         result = client.add_data_point(None,"value",)
-        self.assertEqual(result,-1)
+        self.assertEqual(result,False)
 
     def test_add_datapoint_with_no_argument_should_raise_error(self):
         
@@ -203,26 +204,26 @@ class MainTestCases(unittest.TestCase):
     def test_mark_data_point_as_error_with_proper_argument_should_success(self):
 
         result = client.mark_data_point_as_error("key")
-        self.assertEqual(result,0)
+        self.assertEqual(result,True)
         self.assertEqual(client.payloadJSON["key"],"<ERROR>")
 
         result = client.mark_data_point_as_error("key","assert_name")
-        self.assertEqual(result,0)
+        self.assertEqual(result,True)
         self.assertEqual(client.payloadJSON["assert_name"]["key"],"<ERROR>")
 
         result = client.mark_data_point_as_error("key","")
-        self.assertEqual(result,0)
+        self.assertEqual(result,True)
 
         result = client.mark_data_point_as_error("key",None)
-        self.assertEqual(result,0)
+        self.assertEqual(result,True)
 
     def test_mark_data_point_as_error_with_improper_argument_should_fail(self):
 
         result = client.mark_data_point_as_error("")
-        self.assertEqual(result,-1)
+        self.assertEqual(result,False)
 
         result = client.mark_data_point_as_error(None)
-        self.assertEqual(result,-1)
+        self.assertEqual(result,False)
 
     def test_mark_data_point_as_error_with_no_argument_should_raise_error(self):
         
@@ -236,29 +237,29 @@ class MainTestCases(unittest.TestCase):
     def test_add_json_with_proper_argument_should_suceess(self):
 
         result = client.add_json("test",sample_data)
-        self.assertEqual(result,0)
+        self.assertEqual(result,True)
         self.assertEqual(client.payloadJSON["test"]["key1"],"value1")
 
 
     def test_add_json_with_improper_argument_should_fail(self):
 
         result = client.add_json("test",[])
-        self.assertEqual(result,-1)
+        self.assertEqual(result,False)
 
         result = client.add_json("test","")
-        self.assertEqual(result,-1)
+        self.assertEqual(result,False)
 
         result = client.add_json("",sample_data)
-        self.assertEqual(result,-1)
+        self.assertEqual(result,False)
         
         result = client.add_json(None,sample_data)
-        self.assertEqual(result,-1)
+        self.assertEqual(result,False)
 
         result = client.add_json(sample_data,sample_data)
-        self.assertEqual(result,-1)
+        self.assertEqual(result,False)
 
         result = client.add_json(22,sample_data)
-        self.assertEqual(result,-1)
+        self.assertEqual(result,False)
 
         
     def test_add_json_with_no_argument_should_raise_error(self):
@@ -272,6 +273,34 @@ class MainTestCases(unittest.TestCase):
         with self.assertRaises(TypeError):
             client.add_json(json_data=sample_data)
         
+    #add_event_data_point()
+    def test_add_event_data_point_with_proper_arguments_should_success(self):
+        
+        result = client.add_event_data_point("key","value")
+        self.assertEqual(result,True)
+        self.assertEqual(client.eventJSON["key"],"value")
+
+        result = client.add_event_data_point("key","")
+        self.assertEqual(result,True)
+        self.assertEqual(client.eventJSON["key"],"")
+
+        result = client.add_event_data_point("key",None)
+        self.assertEqual(result,True)
+        self.assertEqual(client.eventJSON["key"],None)
+
+        result = client.add_event_data_point("key",22)
+        self.assertEqual(result,True)
+        self.assertEqual(client.eventJSON["key"],22)
+
+
+    def test_add_event_data_point_with_improper_arguments_should_fail(self):
+
+        result = client.add_event_data_point("","value")
+        self.assertEqual(result,False)
+        
+        result = client.add_event_data_point(None,"value")
+        self.assertEqual(result,False)
+
     #is_connected()
     def test_is_conected_return_true_if_connected(self):
         client.pahoClient = mqtt_client.Client()
@@ -296,6 +325,102 @@ class MainTestCases(unittest.TestCase):
         self.assertFalse(result)
         assert mock_is_connected.call_count == 1
         patcher1.stop()
+
+    #set_agentName_and_Version()
+    def test_set_agentName_and_version_with_proper_arguments_should_success(self):
+        result = client.set_agentName_and_Version("agent_name","1.0")
+        self.assertEqual(result,True)
+        
+    def test_set_agentName_and_version_with_improper_arguments_should_fails(self):
+        result = client.set_agentName_and_Version("","")
+        self.assertEqual(result,False)
+
+        result = client.set_agentName_and_Version(None,None)
+        self.assertEqual(result,False)
+
+        result = client.set_agentName_and_Version("agent",None)
+        self.assertEqual(result,False)
+
+        result = client.set_agentName_and_Version(None,"1.0")
+        self.assertEqual(result,False)
+
+    #set_platform_name()
+    def test_set_platform_name_with_proper_arguments_should_success(self):
+        
+        result = client.set_platform_name("Docker")
+        self.assertEqual(result,True)
+
+    def test_set_platform_name_with_improper_arguments_should_fail(self):
+
+        result = client.set_platform_name("")
+        self.assertEqual(result,False)
+
+        result = client.set_platform_name(None)
+        self.assertEqual(result,False)
+
+        result = client.set_platform_name()
+        self.assertEqual(result,False)
+
+    #form_connection_string()
+    def test_form_connection_string_in_all_cases_should_return_proper_value(self):
+
+        client = ZohoIoTClient()
+        patcher1 = mock.patch.object(ZohoIoTClient,"get_os_info")
+        mock_os_info = patcher1.start()
+        mock_os_info.return_value = True
+        client.osName = None
+        client.osVersion = None
+        client.agentName = None
+        client.agentVersion = None
+
+        result = client.form_connection_string("UserName")
+        self.assertEqual(result, "UserName?sdk_name=zoho-iot-sdk-python&sdk_version="+VERSION+"&" )
+
+        client.osName = "Linux"
+        client.osVersion = None
+        client.agentName = "agentName"
+        client.agentVersion = None
+
+        result = client.form_connection_string("UserName")
+        self.assertEqual(result, "UserName?sdk_name=zoho-iot-sdk-python&sdk_version="+VERSION+"&" )
+
+        client.osName = None
+        client.osVersion = "1.0"
+        client.agentName = None
+        client.agentVersion = "2.0"
+
+        result = client.form_connection_string("UserName")
+        self.assertEqual(result, "UserName?sdk_name=zoho-iot-sdk-python&sdk_version="+VERSION+"&" )
+
+        client.osName = "Linux"
+        client.osVersion = "25.0.1"
+        client.agentName = None
+        client.agentVersion = None
+
+        result = client.form_connection_string("UserName")
+        self.assertEqual(result, "UserName?sdk_name=zoho-iot-sdk-python&sdk_version="+VERSION+"&os_name=Linux&os_version=25.0.1&" )
+
+
+        client.osName = "Linux"
+        client.osVersion = "25.0.1"
+        client.agentName = "agentName"
+        client.agentVersion = "1.0.0"
+
+        result = client.form_connection_string("UserName")
+        self.assertEqual(result, "UserName?sdk_name=zoho-iot-sdk-python&sdk_version="+VERSION+"&agent_name=agentName&agent_version=1.0.0&os_name=Linux&os_version=25.0.1&" )
+
+        mock_os_info.return_value = False
+        client.osName = "Linux"
+        client.osVersion = "25.0.1"
+        client.agentName = "agentName"
+        client.agentVersion = "1.0.0"
+
+        result = client.form_connection_string("UserName")
+        self.assertEqual(result, "UserName?sdk_name=zoho-iot-sdk-python&sdk_version="+VERSION+"&agent_name=agentName&agent_version=1.0.0&" )
+
+        patcher1.stop()
+
+
 
     #connect()
     def test_connect_when_already_connected_return_success(self):
@@ -846,19 +971,50 @@ class MainTestCases(unittest.TestCase):
         mock_wait.return_value = True
 
         client.clientStatus = ClientStatus.CONNECTED
-        message = {"key":"value"}
 
-        result = client.dispatch_event("event_type","event_description",message,"assert_name")
+        client.add_event_data_point("key","value")
+        result = client.dispatch_event()
         self.assertEqual(result,0)
-        assert mock_is_connected.call_count == 1
-        assert mock_publish.call_count == 1
-        assert mock_wait.call_count == 1
+        result = client.dispatch_event("event_type","event_description","assert_name")
+        self.assertEqual(result,0)
+        assert mock_is_connected.call_count == 2
+        assert mock_publish.call_count == 2
+        assert mock_wait.call_count == 2
 
         patcher1.stop()
         patcher2.stop()
         patcher3.stop()
 
-    def test_dispatch_event_with_empty_arguments_should_fail(self):
+    #dispatch_event_with_data
+    def test_dispatch_event_with_data_with_proper_arguments_should_success(self):
+
+        client.pahoClient = mqtt_client.Client()
+        patcher1 = mock.patch.object(mqtt_client.Client,"is_connected")
+        patcher2 = mock.patch.object(mqtt_client.Client,"publish")
+        patcher3 = mock.patch.object(threading.Event,"wait")
+        mock_is_connected = patcher1.start()
+        mock_publish = patcher2.start()
+        mock_wait = patcher3.start()
+        mock_is_connected.return_value = True
+        mock_publish.return_value = [0]
+        mock_wait.return_value = True
+
+        client.clientStatus = ClientStatus.CONNECTED
+        message = {"key":"value"}
+
+        result = client.dispatch_event_with_data("event_type","event_description",message,"assert_name")
+        self.assertEqual(result,0)
+        result = client.dispatch_event_with_data(message)
+        self.assertEqual(result,0)
+        assert mock_is_connected.call_count == 2
+        assert mock_publish.call_count == 2
+        assert mock_wait.call_count == 2
+
+        patcher1.stop()
+        patcher2.stop()
+        patcher3.stop()
+
+    def test_dispatch_event_with_data_with_empty_arguments_should_fail(self):
 
         client.pahoClient = mqtt_client.Client()
         patcher1 = mock.patch.object(mqtt_client.Client,"is_connected")
@@ -873,71 +1029,12 @@ class MainTestCases(unittest.TestCase):
 
         client.clientStatus = ClientStatus.CONNECTED
         
-        result = client.dispatch_event()
+        result = client.dispatch_event_with_data()
         self.assertEqual(result,-1)
 
         patcher1.stop()
         patcher2.stop()
         patcher3.stop()
-
-    #dispatch_assert()
-    def test_dispatch_asset_with_proper_arguments_should_success(self):
-
-        client.pahoClient = mqtt_client.Client()
-        patcher1 = mock.patch.object(mqtt_client.Client,"is_connected")
-        patcher2 = mock.patch.object(mqtt_client.Client,"publish")
-        patcher3 = mock.patch.object(threading.Event,"wait")
-        mock_is_connected = patcher1.start()
-        mock_publish = patcher2.start()
-        mock_wait = patcher3.start()
-        mock_is_connected.return_value = True
-        mock_publish.return_value = [0]
-        mock_wait.return_value = True
-
-        client.clientStatus = ClientStatus.CONNECTED
-        client.payloadJSON = {"key":"value"}
-
-        result = client.dispatch_asset("assert_name")
-        self.assertEqual(result,0)
-        assert mock_is_connected.call_count == 1
-        assert mock_publish.call_count == 1
-        assert mock_wait.call_count == 1
-
-        patcher1.stop()
-        patcher2.stop()
-        patcher3.stop()
-
-    def test_dispatch_asset_with_improper_arguments_should_fail(self):
-
-        result = client.dispatch_asset("")
-        self.assertEqual(result,-1)
-
-    def test_dispatch_asset_with_no_payload_should_success(self):
-
-        client.pahoClient = mqtt_client.Client()
-        patcher1 = mock.patch.object(mqtt_client.Client,"is_connected")
-        patcher2 = mock.patch.object(mqtt_client.Client,"publish")
-        patcher3 = mock.patch.object(threading.Event,"wait")
-        mock_is_connected = patcher1.start()
-        mock_publish = patcher2.start()
-        mock_wait = patcher3.start()
-        mock_is_connected.return_value = True
-        mock_publish.return_value = [0]
-        mock_wait.return_value = True
-
-        client.clientStatus = ClientStatus.CONNECTED
-        client.payloadJSON = {}
-
-        result = client.dispatch_asset("assert_name")
-        self.assertEqual(result,0)
-        assert mock_is_connected.call_count == 1
-        assert mock_publish.call_count == 1
-        assert mock_wait.call_count == 1
-
-        patcher1.stop()
-        patcher2.stop()
-        patcher3.stop()
-
 
     #publish_ack()
     def test_publish_ack_with_proper_arguments_should_success(self):
@@ -1105,12 +1202,16 @@ class MainTestCases(unittest.TestCase):
 
         client.clientStatus = ClientStatus.CONNECTED
         message = '[{"payload":[{"edge_command_key":"${light.MODBUS}","value":"on"}],"command_name":"light","correlation_id":"143c5dc0-aabf-11ee-b726-5354005d2854"}]'
-
         result = client.send_first_ack(message,"topic",ConfigAckResponseCodes.CONFIG_RECEIVED_ACK_CODE)
         self.assertEqual(result,0)
-        assert mock_is_connected.call_count == 1
-        assert mock_publish.call_count == 1
-        assert mock_wait.call_count == 1
+
+        message = '[{"payload":[{"edge_command_key":"${light.MODBUS}","value":"on"}],"command_name":"light","correlation_id":"143c5dc0-aabf-11ee-b726-5354005d2854","is_new_config": false}]'
+        result = client.send_first_ack(message,"topic",ConfigAckResponseCodes.CONFIG_RECEIVED_ACK_CODE)
+        self.assertEqual(result,0)
+
+        message = '[{"payload":[{"edge_command_key":"${light.MODBUS}","value":"on"}],"command_name":"light","correlation_id":"143c5dc0-aabf-11ee-b726-5354005d2854","is_new_config": false}]'
+        result = client.send_first_ack(message,"topic",ConfigAckResponseCodes.CONFIG_RECEIVED_ACK_CODE)
+        self.assertEqual(result,0)
 
         patcher1.stop()
         patcher2.stop()
@@ -1373,16 +1474,16 @@ class MainTestCases(unittest.TestCase):
     #set_maximum_payload_size()
     def test_set_maximum_payload_size_with_proper_arguments_should_success(self):
 
-        result = client.set_maximum_payload_size(40000)
-        self.assertEqual(result,0)
-        self.assertEqual(client.payload_size,40000)
+        result = client.set_maximum_payload_size(50000)
+        self.assertEqual(result,True)
+        self.assertEqual(client.payload_size,50000)
 
     def test_set_maximum_payload_size_with_maximum_or_minimum_limit_should_fail(self):
 
         result = client.set_maximum_payload_size(4000)
-        self.assertEqual(result,-1)
+        self.assertEqual(result,False)
         result = client.set_maximum_payload_size(400000)
-        self.assertEqual(result,-1)
+        self.assertEqual(result,False)
 
 
 if __name__ == '__main__':

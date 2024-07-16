@@ -520,10 +520,11 @@ class ZohoIoTClient:
         return rc
 
     def dispatch_event(self,event_type=None,event_description=None, asset_name=None):
-        self.dispatch_event_with_data(event_type,event_description,self.eventJSON,asset_name)
+        rc = self.dispatch_event_with_data(self.eventJSON, event_type, event_description, asset_name)
         self.eventJSON = {}
+        return rc
 
-    def dispatch_event_with_data(self, event_type=None, event_description=None, event_data_keymap=None, asset_name=None):
+    def dispatch_event_with_data(self, event_data_keymap=None, event_type=None, event_description=None, asset_name=None):
         if event_data_keymap is None:
             self.log_error("Can't append NULL arguments to Event.")
             return TransactionStatus.FAILURE.value
