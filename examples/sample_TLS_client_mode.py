@@ -60,7 +60,7 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 client.enable_logger(logger, filename="sample_TLS_client_mode.log")
 
-client.init(MQTT_USER_NAME,
+client.init(MQTT_USER_NAME,"",
             CA_CERTIFICATE,
             CLIENT_CERTIFICATE,
             PRIVATE_KEY)
