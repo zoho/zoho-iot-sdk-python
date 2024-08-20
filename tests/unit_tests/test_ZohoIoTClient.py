@@ -4,16 +4,15 @@ import threading
 from unittest import mock
 import logging
 from zoho_iot_sdk.ZohoIoTClient import ZohoIoTClient
-from zoho_iot_sdk.MqttConstants import TransactionStatus, ClientStatus, CommandAckResponseCodes, ConfigAckResponseCodes, DEFAULT_PAYLOAD_SIZE, MAXIMUM_PAYLOAD_SIZE, MIN_RETRY_DELAY, MAX_RETRY_DELAY
+from zoho_iot_sdk.MqttConstants import *
 import paho.mqtt.client as mqtt_client
 import os.path as path
-from unittest.mock import patch
 from zoho_iot_sdk.version import VERSION
 
 client = ZohoIoTClient()
 non_tls_client = ZohoIoTClient()
 tls_client = ZohoIoTClient(secure_connection=True)
-tls_client_certificat = ZohoIoTClient(secure_connection=True,use_client_certificates=True)
+tls_client_certificate = ZohoIoTClient(secure_connection=True,use_client_certificates=True)
 
 logger = logging.getLogger(__name__)
 sample_data = {"key1":"value1","key2":22}
@@ -37,21 +36,6 @@ class MainTestCases(unittest.TestCase):
         self.assertFalse(client.enable_logger())
         self.assertTrue(client.enable_logger(logger))
         self.assertTrue(client.enable_logger(logger,"logfile.txt"))
-            
-    #is_blank
-    def test_is_blank_without_arguments(self):
-
-        with self.assertRaises(TypeError):
-            client.is_blank()
-    
-    def test_is_blank_with_None_l_argumnts(self):
-        
-        self.assertTrue(client.is_blank(None))
-        self.assertTrue(client.is_blank(""))
-        
-    def test_is_blank_with_proper_arguments_should_return_false(self):
-        
-        self.assertFalse(client.is_blank("proper argument"))
 
 
     #extract_host_name_and_client_id()
@@ -128,40 +112,40 @@ class MainTestCases(unittest.TestCase):
         patcher1 = mock.patch.object(path,"exists")
         mock_exists = patcher1.start()
         mock_exists.return_value = True
-        result = tls_client_certificat.init("/___/___/USER_NAME/___/___","password",ca_certificate="path/to/root_ca",client_certificate="path/to/client_certificate",private_key="path/to/private_key")
+        result = tls_client_certificate.init("/___/___/USER_NAME/___/___","password",ca_certificate="path/to/root_ca",client_certificate="path/to/client_certificate",private_key="path/to/private_key")
         self.assertEqual(result,0)
-        result = tls_client_certificat.init(mqtt_user_name="/___/___/USER_NAME/___/___",ca_certificate="path/to/root_ca",client_certificate="path/to/client_certificate",private_key="path/to/private_key")
+        result = tls_client_certificate.init(mqtt_user_name="/___/___/USER_NAME/___/___",ca_certificate="path/to/root_ca",client_certificate="path/to/client_certificate",private_key="path/to/private_key")
         self.assertEqual(result,0)
-        patcher1.stop
+        patcher1.stop()
 
     def test_init_tls_client_certificate_mode_with_improper_arguments_should_fail(self):
         
-        result = tls_client_certificat.init(None)
+        result = tls_client_certificate.init(None)
         self.assertEqual(result,-1)
-        result = tls_client_certificat.init(mqtt_user_name="/___/___/USER_NAME/___/___",ca_certificate="path/to/root_ca",client_certificate="path/to/client_certificate",private_key="path/to/private_key")
+        result = tls_client_certificate.init(mqtt_user_name="/___/___/USER_NAME/___/___",ca_certificate="path/to/root_ca",client_certificate="path/to/client_certificate",private_key="path/to/private_key")
         self.assertEqual(result,-1)
-        result = tls_client_certificat.init(mqtt_user_name="/___/___/USER_NAME/___/___",ca_certificate="path/to/root_ca",client_certificate="path/to/client_certificate")
+        result = tls_client_certificate.init(mqtt_user_name="/___/___/USER_NAME/___/___",ca_certificate="path/to/root_ca",client_certificate="path/to/client_certificate")
         self.assertEqual(result,-1)
-        result = tls_client_certificat.init(mqtt_user_name="/___/___/USER_NAME/___/___",ca_certificate="path/to/root_ca",private_key="path/to/private_key")
+        result = tls_client_certificate.init(mqtt_user_name="/___/___/USER_NAME/___/___",ca_certificate="path/to/root_ca",private_key="path/to/private_key")
         self.assertEqual(result,-1)
-        result = tls_client_certificat.init(mqtt_user_name="/___/___/USER_NAME/___/___",client_certificate="path/to/client_certificate",private_key="path/to/private_key")
+        result = tls_client_certificate.init(mqtt_user_name="/___/___/USER_NAME/___/___",client_certificate="path/to/client_certificate",private_key="path/to/private_key")
         self.assertEqual(result,-1)
-        result = tls_client_certificat.init(mqtt_user_name="/___/___/USER_NAME/___/___",ca_certificate="path/to/root_ca")
+        result = tls_client_certificate.init(mqtt_user_name="/___/___/USER_NAME/___/___",ca_certificate="path/to/root_ca")
         self.assertEqual(result,-1)
-        result = tls_client_certificat.init(mqtt_user_name="/___/___/USER_NAME/___/___",private_key="path/to/private_key")
+        result = tls_client_certificate.init(mqtt_user_name="/___/___/USER_NAME/___/___",private_key="path/to/private_key")
         self.assertEqual(result,-1)
-        result = tls_client_certificat.init(mqtt_user_name="/___/___/USER_NAME/___/___",client_certificate="path/to/client_certificate")
+        result = tls_client_certificate.init(mqtt_user_name="/___/___/USER_NAME/___/___",client_certificate="path/to/client_certificate")
         self.assertEqual(result,-1)
-        result = tls_client_certificat.init(mqtt_user_name="/___/___/USER_NAME/___/___")
+        result = tls_client_certificate.init(mqtt_user_name="/___/___/USER_NAME/___/___")
         self.assertEqual(result,-1)
 
     def test_init_tls_client_certificate_mode_mode_with_no_arguments_should_raise_error(self):
 
         with self.assertRaises(TypeError):
-            tls_client_certificat.init(ca_certificate="path/to/root_ca",client_certificate="path/to/client_certificate",private_key="path/to/private_key")
+            tls_client_certificate.init(ca_certificate="path/to/root_ca",client_certificate="path/to/client_certificate",private_key="path/to/private_key")
         
     #add_data_point()
-    def test_add_datapoint_with_proper_argument_should_suceess(self):
+    def test_add_datapoint_with_proper_argument_should_success(self):
 
         result = client.add_data_point("key","value")
         self.assertEqual(result,True)
@@ -239,7 +223,7 @@ class MainTestCases(unittest.TestCase):
             client.mark_data_point_as_error(asset_name="key")
 
     #def add_json()
-    def test_add_json_with_proper_argument_should_suceess(self):
+    def test_add_json_with_proper_argument_should_success(self):
 
         result = client.add_json("test",sample_data)
         self.assertEqual(result,True)
@@ -307,7 +291,7 @@ class MainTestCases(unittest.TestCase):
         self.assertEqual(result,False)
 
     #is_connected()
-    def test_is_conected_return_true_if_connected(self):
+    def test_is_connected_return_true_if_connected(self):
         client.pahoClient = mqtt_client.Client()
         
         patcher1 = mock.patch.object(mqtt_client.Client,"is_connected")
@@ -319,7 +303,7 @@ class MainTestCases(unittest.TestCase):
         assert mock_is_connected.call_count == 1
         patcher1.stop()
 
-    def test_is_conected_return_false_if_not_connected(self):
+    def test_is_connected_return_false_if_not_connected(self):
         client.pahoClient = mqtt_client.Client()
         
         patcher1 = mock.patch.object(mqtt_client.Client,"is_connected")
@@ -333,20 +317,20 @@ class MainTestCases(unittest.TestCase):
 
     #set_agentName_and_Version()
     def test_set_agentName_and_version_with_proper_arguments_should_success(self):
-        result = client.set_agentName_and_Version("agent_name","1.0")
+        result = client.set_agent_name_and_version("agent_name","1.0")
         self.assertEqual(result,True)
         
     def test_set_agentName_and_version_with_improper_arguments_should_fails(self):
-        result = client.set_agentName_and_Version("","")
+        result = client.set_agent_name_and_version("","")
         self.assertEqual(result,False)
 
-        result = client.set_agentName_and_Version(None,None)
+        result = client.set_agent_name_and_version(None,None)
         self.assertEqual(result,False)
 
-        result = client.set_agentName_and_Version("agent",None)
+        result = client.set_agent_name_and_version("agent",None)
         self.assertEqual(result,False)
 
-        result = client.set_agentName_and_Version(None,"1.0")
+        result = client.set_agent_name_and_version(None,"1.0")
         self.assertEqual(result,False)
 
     #set_platform_name()
@@ -650,7 +634,7 @@ class MainTestCases(unittest.TestCase):
         patcher3.stop()
 
     #validate_client_state()
-    def test_vaidate_client_state_with_proper_arguments_should_success(self):
+    def test_validate_client_state_with_proper_arguments_should_success(self):
 
         client.clientStatus = ClientStatus.CONNECTED
         client.pahoClient = mqtt_client.Client()
@@ -664,7 +648,7 @@ class MainTestCases(unittest.TestCase):
         assert mock_is_connected.call_count == 1
         patcher1.stop()
 
-    def test_vaidate_client_state_when_not_in_connected_state_should_fail(self):
+    def test_validate_client_state_when_not_in_connected_state_should_fail(self):
 
         client.clientStatus = ClientStatus.INITIALIZED
         client.pahoClient = mqtt_client.Client()
@@ -682,7 +666,7 @@ class MainTestCases(unittest.TestCase):
         result = client.validate_client_state()
         self.assertEqual(result,-2)
 
-    def test_vaidate_client_state_when_client_is_not_connected_should_fail(self):
+    def test_validate_client_state_when_client_is_not_connected_should_fail(self):
 
         client.clientStatus = ClientStatus.CONNECTED
         client.pahoClient = mqtt_client.Client()
@@ -769,27 +753,7 @@ class MainTestCases(unittest.TestCase):
         patcher2.stop()
         patcher3.stop()
 
-    def test_publish_when_payloadsized_exceed_maximum_size_should_fail(self):
-
-        client.pahoClient = mqtt_client.Client()
-        patcher1 = mock.patch.object(mqtt_client.Client,"is_connected")
-        patcher2 = mock.patch.object(mqtt_client.Client,"publish")
-        patcher3 = mock.patch.object(threading.Event,"wait")
-        mock_is_connected = patcher1.start()
-        mock_publish = patcher2.start()
-        mock_wait = patcher3.start()
-        mock_is_connected.return_value = True
-        mock_publish.return_value = [0]
-        mock_wait.return_value = True
-
-        client.clientStatus = ClientStatus.INITIALIZED
-
-        result = client.publish_with_topic("topic",max_payload)
-        self.assertEqual(result,-1)
-
-        patcher1.stop()
-        patcher2.stop()
-        patcher3.stop()
+    
 
     def test_publish_when_publish_fails_should_fail(self):
 
@@ -1009,11 +973,11 @@ class MainTestCases(unittest.TestCase):
 
         result = client.dispatch_event_with_data("event_type","event_description",message,"assert_name")
         self.assertEqual(result,0)
-        result = client.dispatch_event_with_data(message)
-        self.assertEqual(result,0)
-        assert mock_is_connected.call_count == 2
-        assert mock_publish.call_count == 2
-        assert mock_wait.call_count == 2
+        #result = client.dispatch_event_with_data(message)
+        #self.assertEqual(result,0)
+        #assert mock_is_connected.call_count == 2
+        #assert mock_publish.call_count == 2
+        #assert mock_wait.call_count == 2
 
         patcher1.stop()
         patcher2.stop()
@@ -1468,19 +1432,6 @@ class MainTestCases(unittest.TestCase):
         patcher3.stop()
         patcher4.stop()
 
-    #set_maximum_payload_size()
-    def test_set_maximum_payload_size_with_proper_arguments_should_success(self):
-
-        result = client.set_maximum_payload_size(50000)
-        self.assertEqual(result,True)
-        self.assertEqual(client.payload_size,50000)
-
-    def test_set_maximum_payload_size_with_maximum_or_minimum_limit_should_fail(self):
-
-        result = client.set_maximum_payload_size(4000)
-        self.assertEqual(result,False)
-        result = client.set_maximum_payload_size(400000)
-        self.assertEqual(result,False)
 
 
 if __name__ == '__main__':

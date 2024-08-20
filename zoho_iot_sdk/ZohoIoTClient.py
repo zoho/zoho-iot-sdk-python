@@ -534,7 +534,7 @@ class ZohoIoTClient:
         if Utils.is_blank(asset_name):
             return self.publish_with_topic(topic=self.eventTopic, message=json.dumps(payload))
         else:
-            payload_temp = (asset_name, payload)
+            payload_temp = {asset_name: payload}
             return self.publish_with_topic(topic=self.eventTopic, message=json.dumps(payload_temp))
 
     def publish_with_topic(self, topic, message):
@@ -632,3 +632,4 @@ class ZohoIoTClient:
 
     def set_auto_reconnect(self, value):  # value is boolean(True or False)
         self.autoReconnect = value
+
