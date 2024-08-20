@@ -1,26 +1,23 @@
 import sys
 import logging
-import json
 import time
 import signal
 import board
 import adafruit_dht
 
-# Append the necessary directories to the system path for module imports
-sys.path.append(".")
-sys.path.append("..")
-sys.path.append("../..")
-
 # Import the Zoho IoT SDK
 from zoho_iot_sdk import ZohoIoTClient, MqttConstants
-MQTT_USER_NAME="<user name>"
-MQTT_PASSWORD="<password>"
-CA_CERTIFICATE="<ZohoIoTServerRootCA.pem file location>"
+
+MQTT_USER_NAME = "<user name>"
+MQTT_PASSWORD = "<password>"
+CA_CERTIFICATE = "<ZohoIoTServerRootCA.pem file location>"
 
 # Create an instance of the ZohoIoTClient with secure connection
 client = ZohoIoTClient(secure_connection=True)
 
 sensor = adafruit_dht.DHT22(board.D4)
+
+
 # Initialize the DHT22 sensor (data pin connected to GPIO 4)
 # Uncomment the following line to use the DHT11 sensor instead
 # sensor = adafruit_dht.DHT11(board.D4)
@@ -41,11 +38,13 @@ def main():
     client.enable_logger(logger, filename="dht_sample.log")
 
     # Initialize the Zoho IoT client with MQTT credentials and CA certificate
-    client.init(MQTT_USER_NAME, MQTT_PASSWORD,
+    rc = client.init(MQTT_USER_NAME, MQTT_PASSWORD,
                 CA_CERTIFICATE)
-
-    # Attempt to connect to the MQTT server
-    rc = client.connect()
+    if rc == 0:
+        # Attempt to connect to the MQTT server
+        rc = client.connect()
+    else:
+        exit(-1)
 
     # Check if the connection was successful
     if rc == 0:

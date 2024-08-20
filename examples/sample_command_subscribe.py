@@ -3,21 +3,15 @@ import logging
 import json
 import time
 import signal
-from os.path import exists
-
-sys.path.append(".")
-sys.path.append("..")
-sys.path.append("../..")
-
 from zoho_iot_sdk import ZohoIoTClient, MqttConstants
-MQTT_USER_NAME="<user name>"
-MQTT_PASSWORD="<password>"
-CA_CERTIFICATE="<ZohoIoTServerRootCA.pem file location>"
+
+MQTT_USER_NAME = "<user name>"
+MQTT_PASSWORD = "<password>"
+CA_CERTIFICATE = "<ZohoIoTServerRootCA.pem file location>"
 
 def handler(sig, frame):
     client.disconnect()
     sys.exit(0)
-
 
 def command_callback(ack_client, message):
     payload_array = json.loads(message.payload)
@@ -38,7 +32,6 @@ def command_callback(ack_client, message):
                                        status_code=MqttConstants.CommandAckResponseCodes.SUCCESSFULLY_EXECUTED,
                                        response_message="Command based task Executed.")
 
-
 def config_callback(ack_client, message):
     payload_array = json.loads(message.payload)
     time.sleep(1)
@@ -47,55 +40,25 @@ def config_callback(ack_client, message):
         payload_data = payload["payload"]
         print("correlation_id :" + correlation_id)
         print("payload :" + str(payload_data))
-        if payload_data[0].get("MQTT", {}).get("sending_interval") is not None:
-            file = open(json_file_location, "w")
-            file.write(json.dumps(payload_data[0]))
-            file.close()
-            global interval
-            interval = payload_data[0]["MQTT"]["sending_interval"]
-            ack_client.publish_config_ack(correlation_id=correlation_id,
+
+        ack_client.publish_config_ack(correlation_id=correlation_id,
                                           status_code=MqttConstants.ConfigAckResponseCodes.SUCCESSFULLY_EXECUTED,
                                           response_message="Config Executed.")
-        else:
-            ack_client.publish_config_ack(correlation_id=correlation_id,
-                                          status_code=MqttConstants.ConfigAckResponseCodes.EXECUTION_FAILURE,
-                                          response_message="Failed to execute")
-
 
 if __name__ == "__main__":
 
     interval = 30
     signal.signal(signal.SIGINT, handler)
-    json_file_location = "setup.json"
-    json_data = {}
-    if exists(json_file_location):
-        f = open(json_file_location, "r")
-        try:
-            json_data = json.loads(f.read())
-            f.close()
-        except ValueError as err:
-            print("invalid setup data")
-            f.close()
-            sys.exit()
-
-    else:
-        print("setup file not exits")
-        sys.exit()
-    if json_data.get("MQTT", {}).get("sending_interval") is not None:
-        interval = json_data["MQTT"]["sending_interval"]
-    else:
-        print("invalid interval ,continuing on default")
     client = ZohoIoTClient(secure_connection=True)
-
     logging.basicConfig(level=logging.DEBUG)
     logger = logging.getLogger(__name__)
     client.enable_logger(logger, filename="sample_command_subscribe.log")
-
-    client.init(MQTT_USER_NAME, MQTT_PASSWORD,
+    rc =client.init(MQTT_USER_NAME, MQTT_PASSWORD,
                 CA_CERTIFICATE)
-
-    rc = client.connect()
-
+    if rc == 0:
+        rc = client.connect()
+    else:
+        exit(-1)
     if rc == 0:
         client.subscribe_command_callback(function=command_callback)
         client.subscribe_config_callback(function=config_callback)
