@@ -3,11 +3,12 @@ import logging
 import json
 import time
 import signal
-from zoho_iot_sdk import ZohoIoTClient, MqttConstants
+from zoho_iot_sdk import ZohoIoTClient
+from zoho_iot_sdk import TransactionStatus,CommandAckResponseCodes,ConfigAckResponseCodes
 
 MQTT_USER_NAME = "<user name>"
 MQTT_PASSWORD = "<password>"
-CA_CERTIFICATE = "<ZohoIoTServerRootCA.pem file location>"
+CA_CERTIFICATE = "./certificate/ZohoIoTServerRootCA.pem"
 
 def handler(sig, frame):
     client.disconnect()
@@ -29,7 +30,7 @@ def command_callback(ack_client, message):
             print("value :" + value)
 
         ack_client.publish_command_ack(correlation_id=correlation_id,
-                                       status_code=MqttConstants.CommandAckResponseCodes.SUCCESSFULLY_EXECUTED,
+                                       status_code=CommandAckResponseCodes.SUCCESSFULLY_EXECUTED,
                                        response_message="Command based task Executed.")
 
 def config_callback(ack_client, message):
@@ -42,7 +43,7 @@ def config_callback(ack_client, message):
         print("payload :" + str(payload_data))
 
         ack_client.publish_config_ack(correlation_id=correlation_id,
-                                          status_code=MqttConstants.ConfigAckResponseCodes.SUCCESSFULLY_EXECUTED,
+                                          status_code=ConfigAckResponseCodes.SUCCESSFULLY_EXECUTED,
                                           response_message="Config Executed.")
 
 if __name__ == "__main__":
@@ -55,11 +56,11 @@ if __name__ == "__main__":
     client.enable_logger(logger, filename="sample_command_subscribe.log")
     rc =client.init(MQTT_USER_NAME, MQTT_PASSWORD,
                 CA_CERTIFICATE)
-    if rc == 0:
+    if rc == TransactionStatus.SUCCESS:
         rc = client.connect()
     else:
         exit(-1)
-    if rc == 0:
+    if rc == TransactionStatus.SUCCESS:
         client.subscribe_command_callback(function=command_callback)
         client.subscribe_config_callback(function=config_callback)
         while True:

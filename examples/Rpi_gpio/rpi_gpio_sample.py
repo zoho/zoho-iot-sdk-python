@@ -11,7 +11,7 @@ from zoho_iot_sdk import ZohoIoTClient, MqttConstants
 
 MQTT_USER_NAME = "<user name>"
 MQTT_PASSWORD = "<password>"
-CA_CERTIFICATE = "<ZohoIoTServerRootCA.pem file location>"
+CA_CERTIFICATE = "./certificate/ZohoIoTServerRootCA.pem"
 
 # Create an instance of the ZohoIoTClient with secure connection
 client = ZohoIoTClient(secure_connection=True)
