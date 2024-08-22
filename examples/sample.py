@@ -11,11 +11,11 @@ logger = logging.getLogger(__name__)
 client.enable_logger(logger, filename="sample.log")
 
 rc = client.init(MQTT_USER_NAME, MQTT_PASSWORD)
-if rc == TransactionStatus.SUCCESS:
+if rc == 0:
     rc = client.connect()
 else:
     exit(-1)
-if rc == TransactionStatus.SUCCESS:
+if rc == 0:
     client.add_data_point(key="temperature", value=35, asset_name="floor_1")
     client.add_data_point(key="humidity", value=70, asset_name="floor_1")
     client.add_data_point(key="temperature", value=30, asset_name="floor_2")
