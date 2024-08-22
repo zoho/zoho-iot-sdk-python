@@ -52,11 +52,11 @@ if __name__ == "__main__":
     client.enable_logger(logger, filename="sample_TLS_mode.log")
     rc =client.init(MQTT_USER_NAME, MQTT_PASSWORD,
                 CA_CERTIFICATE)
-    if rc == TransactionStatus.SUCCESS:
+    if rc == 0:
         rc = client.connect()
     else:
         exit(-1)
-    if rc == TransactionStatus.SUCCESS:
+    if rc == 0:
         client.subscribe_command_callback(function=command_callback)
         client.subscribe_config_callback(function=config_callback)
         while True:
