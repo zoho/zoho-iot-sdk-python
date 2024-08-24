@@ -1,1 +1,3 @@
-gpiod~=2.2.0
+adafruit-blinka
+RPi.GPIO
+rpi-lgpio

@@ -50,8 +50,8 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     logger = logging.getLogger(__name__)
     client.enable_logger(logger, filename="sample_TLS_mode.log")
-    rc =client.init(MQTT_USER_NAME, MQTT_PASSWORD,
-                CA_CERTIFICATE)
+    rc =client.init(mqtt_user_name=MQTT_USER_NAME, mqtt_password=MQTT_PASSWORD,
+                ca_certificate=CA_CERTIFICATE)
     if rc == 0:
         rc = client.connect()
     else:

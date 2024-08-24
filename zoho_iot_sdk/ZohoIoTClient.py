@@ -164,7 +164,7 @@ class ZohoIoTClient:
                 else:
                     ack_payload[correlation_id] = {"status_code": ack_code.value, "response": "",
                                                    "is_new_config": False}
-                    self.config_util.put(correlation_id,True)
+                    self.config_util.put(correlation_id,False)
             else:
                 ack_payload[correlation_id] = {"status_code": ack_code.value, "response": ""}
         return self.publish_with_topic(topic=topic, message=json.dumps(ack_payload))

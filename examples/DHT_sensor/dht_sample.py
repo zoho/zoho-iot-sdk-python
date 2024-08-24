@@ -38,8 +38,8 @@ def main():
     client.enable_logger(logger, filename="dht_sample.log")
 
     # Initialize the Zoho IoT client with MQTT credentials and CA certificate
-    rc = client.init(MQTT_USER_NAME, MQTT_PASSWORD,
-                CA_CERTIFICATE)
+    rc = client.init(mqtt_user_name=MQTT_USER_NAME, mqtt_password=MQTT_PASSWORD,
+                ca_certificate=CA_CERTIFICATE)
     if rc == 0:
         # Attempt to connect to the MQTT server
         rc = client.connect()
