@@ -4,11 +4,22 @@ from zoho_iot_sdk import TransactionStatus
 MQTT_USER_NAME = "<user name>"
 MQTT_PASSWORD = "<password>"
 
-client = ZohoIoTClient()
+def create_logger(name):
+    filename = "sample.log"
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.DEBUG)  
+    console_handler = logging.StreamHandler()
+    file_handler = logging.FileHandler(filename) 
+    formatter = logging.Formatter('%(asctime)s %(levelname)5s  %(filename)s:%(lineno)d %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+    console_handler.setFormatter(formatter)
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+    logger.addHandler(console_handler)
+    return logger
 
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
-client.enable_logger(logger, filename="sample.log")
+logger = create_logger(__name__)
+
+client = ZohoIoTClient(logger=logger)
 
 rc = client.init(mqtt_user_name=MQTT_USER_NAME, mqtt_password=MQTT_PASSWORD)
 if rc == 0:
@@ -23,4 +34,4 @@ if rc == 0:
     client.dispatch()
     client.disconnect()
 else:
-    print("unable to establish connection: " + str(rc))
+    logger.error("unable to establish connection: " + str(rc))

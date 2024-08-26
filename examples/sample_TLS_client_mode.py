@@ -12,6 +12,18 @@ CA_CERTIFICATE = "./certificate/ZohoIoTServerRootCA.pem"
 CLIENT_CERTIFICATE = "<Certificate_name.cert.pem file location>"
 PRIVATE_KEY = "<Certificate_name.private.key file location>"
 
+def create_logger(name):
+    filename = "sample_TLS_client_mode.log"
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.DEBUG)  
+    console_handler = logging.StreamHandler()
+    file_handler = logging.FileHandler(filename) 
+    formatter = logging.Formatter('%(asctime)s %(levelname)5s  %(filename)s:%(lineno)d %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+    console_handler.setFormatter(formatter)
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+    logger.addHandler(console_handler)
+    return logger
 
 def handler(sig, frame):
     client.disconnect()
@@ -52,10 +64,8 @@ def config_callback(ack_client, message):
 
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, handler)
-    client = ZohoIoTClient(secure_connection=True, use_client_certificates=True)
-    logging.basicConfig(level=logging.DEBUG)
-    logger = logging.getLogger(__name__)
-    client.enable_logger(logger, filename="sample_TLS_client_mode.log")
+    logger = create_logger(__name__)
+    client = ZohoIoTClient(secure_connection=True, use_client_certificates=True,logger=logger)
     rc = client.init(mqtt_user_name=MQTT_USER_NAME,
                 ca_certificate=CA_CERTIFICATE,
                 client_certificate=CLIENT_CERTIFICATE,
