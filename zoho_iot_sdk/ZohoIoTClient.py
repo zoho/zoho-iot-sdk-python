@@ -101,13 +101,15 @@ class ZohoIoTClient:
         self.subscribeEvent.set()
 
     def _on_message(self, client, userdata, msg):
-        self.logger.info("Message Received")
         self.logger.debug("Message:%s ,Topic:%s ", msg.payload, msg.topic)
         if msg.topic == self.commandsTopic:
+            self.logger.info("Commands Received")
             threading.Thread(target=self.handle_command, args=(msg,)).start()
         elif msg.topic == self.configTopic:
+            self.logger.info("Config Received")
             threading.Thread(target=self.handle_config, args=(msg,)).start()
         else:
+            self.logger.info("Message Received")
             if msg.topic in self.callBackList:
                 threading.Thread(target=self.callBackList[msg.topic], args=(self, msg,)).start()
             else:
@@ -204,15 +206,25 @@ class ZohoIoTClient:
         if status_code not in CommandAckResponseCodes:
             self.logger.error("Invalid status code")
             return TransactionStatus.FAILURE.value
-        return self.publish_ack(topic=self.commandsAckTopic, correlation_id=correlation_id, status_code=status_code,
+        rc = self.publish_ack(topic=self.commandsAckTopic, correlation_id=correlation_id, status_code=status_code,
                                 response_message=response_message)
+        if rc == 0:
+            self.logger.info("Command ACK Published Successfully")
+        else:
+            self.logger.error("Error on Publishing Command ACK")
+        return rc
 
     def publish_config_ack(self, correlation_id, status_code, response_message):
         if status_code not in ConfigAckResponseCodes:
             self.logger.error("Invalid status code")
             return TransactionStatus.FAILURE.value
-        return self.publish_ack(topic=self.configAckTopic, correlation_id=correlation_id, status_code=status_code,
+        rc = self.publish_ack(topic=self.configAckTopic, correlation_id=correlation_id, status_code=status_code,
                                 response_message=response_message)
+        if rc == 0:
+            self.logger.info("Config ACK Published Successfully")
+        else:
+            self.logger.error("Error on publishing Config ACK")
+        return rc
 
     def publish_ack(self, topic, correlation_id, status_code, response_message):
         if Utils.is_blank(correlation_id) or response_message is None:
