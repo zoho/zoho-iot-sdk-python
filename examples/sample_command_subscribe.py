@@ -10,9 +10,9 @@ MQTT_USER_NAME = "<user name>"
 MQTT_PASSWORD = "<password>"
 CA_CERTIFICATE = "./certificate/ZohoIoTServerRootCA.pem"
 
-def create_logger(name):
+def create_logger():
     filename = "sample_command_subscribe.log"
-    logger = logging.getLogger(name)
+    logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)  
     console_handler = logging.StreamHandler()
     file_handler = logging.FileHandler(filename) 
@@ -62,7 +62,7 @@ def config_callback(ack_client, message):
 if __name__ == "__main__":
 
     interval = 30
-    logger = create_logger(__name__)
+    logger = create_logger()
     signal.signal(signal.SIGINT, handler)
     client = ZohoIoTClient(secure_connection=True,logger=logger)
     rc =client.init(mqtt_user_name=MQTT_USER_NAME, mqtt_password=MQTT_PASSWORD,

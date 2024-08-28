@@ -4,9 +4,9 @@ from zoho_iot_sdk import TransactionStatus
 MQTT_USER_NAME = "<user name>"
 MQTT_PASSWORD = "<password>"
 
-def create_logger(name):
+def create_logger():
     filename = "sample.log"
-    logger = logging.getLogger(name)
+    logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)  
     console_handler = logging.StreamHandler()
     file_handler = logging.FileHandler(filename) 
@@ -17,7 +17,7 @@ def create_logger(name):
     logger.addHandler(console_handler)
     return logger
 
-logger = create_logger(__name__)
+logger = create_logger()
 
 client = ZohoIoTClient(logger=logger)
 

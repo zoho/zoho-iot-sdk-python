@@ -12,9 +12,9 @@ MQTT_USER_NAME = "<user name>"
 MQTT_PASSWORD = "<password>"
 CA_CERTIFICATE = "../certificate/ZohoIoTServerRootCA.pem"
 
-def create_logger(name):
+def create_logger():
     filename = "dht_sample.log"
-    logger = logging.getLogger(name)
+    logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)  
     console_handler = logging.StreamHandler()
     file_handler = logging.FileHandler(filename) 
@@ -25,7 +25,7 @@ def create_logger(name):
     logger.addHandler(console_handler)
     return logger
 
-logger = create_logger(__name__)
+logger = create_logger()
 
 # Create an instance of the ZohoIoTClient with secure connection
 client = ZohoIoTClient(secure_connection=True,logger=logger)
