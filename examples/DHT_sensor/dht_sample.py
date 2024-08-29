@@ -12,8 +12,23 @@ MQTT_USER_NAME = "<user name>"
 MQTT_PASSWORD = "<password>"
 CA_CERTIFICATE = "../certificate/ZohoIoTServerRootCA.pem"
 
+def create_logger():
+    filename = "dht_sample.log"
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)  
+    console_handler = logging.StreamHandler()
+    file_handler = logging.FileHandler(filename) 
+    formatter = logging.Formatter('%(asctime)s %(levelname)5s  %(filename)s:%(lineno)d %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+    console_handler.setFormatter(formatter)
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+    logger.addHandler(console_handler)
+    return logger
+
+logger = create_logger()
+
 # Create an instance of the ZohoIoTClient with secure connection
-client = ZohoIoTClient(secure_connection=True)
+client = ZohoIoTClient(secure_connection=True,logger=logger)
 
 sensor = adafruit_dht.DHT22(board.D4)
 
@@ -31,11 +46,6 @@ def handler(sig, frame):
 def main():
     # Register the signal handler for SIGINT
     signal.signal(signal.SIGINT, handler)
-
-    # Set up logging
-    logging.basicConfig(level=logging.DEBUG)
-    logger = logging.getLogger(__name__)
-    client.enable_logger(logger, filename="dht_sample.log")
 
     # Initialize the Zoho IoT client with MQTT credentials and CA certificate
     rc = client.init(mqtt_user_name=MQTT_USER_NAME, mqtt_password=MQTT_PASSWORD,

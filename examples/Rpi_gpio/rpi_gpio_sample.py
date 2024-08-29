@@ -21,13 +21,23 @@ MQTT_USER_NAME = "<user name>"
 MQTT_PASSWORD = "<password>"
 CA_CERTIFICATE = "../certificate/ZohoIoTServerRootCA.pem"
 
-# Create an instance of the ZohoIoTClient with secure connection
-client = ZohoIoTClient(secure_connection=True)
+def create_logger():
+    filename = "rpi_gpio_sample.log"
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)  
+    console_handler = logging.StreamHandler()
+    file_handler = logging.FileHandler(filename) 
+    formatter = logging.Formatter('%(asctime)s %(levelname)5s  %(filename)s:%(lineno)d %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+    console_handler.setFormatter(formatter)
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+    logger.addHandler(console_handler)
+    return logger
 
-# Set up logging
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
-client.enable_logger(logger, filename="rpi_gpio_sample.log")
+# Create an instance of the ZohoIoTClient with secure connection
+logger = create_logger()
+client = ZohoIoTClient(secure_connection=True,logger=logger)
+
 
 # Initialize GPIO pins
 led_pin = digitalio.DigitalInOut(OUTPUT_PIN)
