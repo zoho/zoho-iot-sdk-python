@@ -5,7 +5,7 @@ import signal
 import board
 import adafruit_dht
 
-# Import the Zoho IoT SDK
+# Import the Zoho IOT SDK
 from zoho_iot_sdk import ZohoIoTClient, MqttConstants
 
 MQTT_USER_NAME = "<user name>"
@@ -30,10 +30,8 @@ logger = create_logger()
 # Create an instance of the ZohoIoTClient with secure connection
 client = ZohoIoTClient(secure_connection=True,logger=logger)
 
-sensor = adafruit_dht.DHT22(board.D4)
-
-
 # Initialize the DHT22 sensor (data pin connected to GPIO 4)
+sensor = adafruit_dht.DHT22(board.D4)
 # Uncomment the following line to use the DHT11 sensor instead
 # sensor = adafruit_dht.DHT11(board.D4)
 
@@ -47,7 +45,7 @@ def main():
     # Register the signal handler for SIGINT
     signal.signal(signal.SIGINT, handler)
 
-    # Initialize the Zoho IoT client with MQTT credentials and CA certificate
+    # Initialize the Zoho IOT client with MQTT credentials and CA certificate
     rc = client.init(mqtt_user_name=MQTT_USER_NAME, mqtt_password=MQTT_PASSWORD,
                 ca_certificate=CA_CERTIFICATE)
     if rc == 0:

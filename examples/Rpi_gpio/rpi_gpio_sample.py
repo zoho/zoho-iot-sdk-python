@@ -7,16 +7,16 @@ import threading
 import board
 import digitalio
 
-# Import the Zoho IoT SDK
+# Import the Zoho IOT SDK
 from zoho_iot_sdk import ZohoIoTClient, MqttConstants
 
 
-# Define GPIO pins based on detected model
+# Define GPIO pins based on rpi model
 OUTPUT_PIN = board.D17
 SWITCH_PIN = board.D27
 INTERRUPT_PIN = board.D22
 
-# Initialize the Zoho IoT client with MQTT credentials and CA certificate
+# Initialize the Zoho IOT client with MQTT credentials and CA certificate
 MQTT_USER_NAME = "<user name>"
 MQTT_PASSWORD = "<password>"
 CA_CERTIFICATE = "../certificate/ZohoIoTServerRootCA.pem"
@@ -67,7 +67,6 @@ def handle_interrupt():
             logging.debug("Interrupt state changed: %d", current_value)
             # Update the interrupt state
             client.add_data_point(key="interrupt", value=current_value)
-            # Dispatch the data points to the asset named "room"
             client.dispatch()
             previous_value = current_value
         time.sleep(0.5)
@@ -106,7 +105,7 @@ def main():
     # Register the signal handler for SIGINT
     signal.signal(signal.SIGINT, handler)
 
-    # Initialize the Zoho IoT client with MQTT credentials and CA certificate
+    # Initialize the Zoho IOT client with MQTT credentials and CA certificate
     rc = client.init(mqtt_user_name=MQTT_USER_NAME, mqtt_password=MQTT_PASSWORD, ca_certificate=CA_CERTIFICATE)
     if rc == 0:
         # Attempt to connect to the MQTT server
