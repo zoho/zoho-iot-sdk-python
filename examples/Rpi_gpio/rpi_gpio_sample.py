@@ -76,10 +76,10 @@ def command_callback(ack_client, message):
     time.sleep(1)
     for payload in payload_array:
         correlation_id = payload["correlation_id"]
-        command_name = payload["command_name"]
         payload_data = payload["payload"]
-        logging.info("Received command: %s with correlation ID: %s", command_name, correlation_id)
-        if command_name == "LED_control":
+        command_key = payload_data[0]["edge_command_key"]
+        logging.info("Received command key: %s with correlation ID: %s", command_key, correlation_id)
+        if command_key == "LED_control":
             if payload_data[0]["value"] == "on":
                 set_led(True)
                 logger.debug("LED turned ON")
