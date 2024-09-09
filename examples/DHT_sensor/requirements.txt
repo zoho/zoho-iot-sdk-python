@@ -1,1 +1,1 @@
-adafruit-circuitpython-dht~=4.0.4
+rpi-lgpio == 0.6
