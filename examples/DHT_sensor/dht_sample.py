@@ -2,11 +2,10 @@ import sys
 import logging
 import time
 import signal
-import board
-import adafruit_dht
 
 # Import the Zoho IOT SDK
 from zoho_iot_sdk import ZohoIoTClient, MqttConstants
+from utils.dht import DHT_SENSOR
 
 MQTT_USER_NAME = "<user name>"
 MQTT_PASSWORD = "<password>"
@@ -31,9 +30,10 @@ logger = create_logger()
 client = ZohoIoTClient(secure_connection=True,logger=logger)
 
 # Initialize the DHT22 sensor (data pin connected to GPIO 4)
-sensor = adafruit_dht.DHT22(board.D4)
+sensor = DHT_SENSOR(pin=4,dht_model="22")
 # Uncomment the following line to use the DHT11 sensor instead
-# sensor = adafruit_dht.DHT11(board.D4)
+# sensor = DHT_SENSOR(pin=4,dht_model="11")
+result = sensor.read()
 
 # Define a signal handler to cleanly disconnect and exit on SIGINT (Ctrl+C)
 def handler(sig, frame):
@@ -59,15 +59,17 @@ def main():
         while True:
             try:
                 # Read temperature and humidity from the sensor
-                temperature_c = sensor.temperature
-                humidity = sensor.humidity
+                if result.is_valid():
+                    temperature_c = result.temperature
+                    humidity = result.humidity
+                    # Add data points for temperature and humidity
+                    client.add_data_point(key="temperature", value=temperature_c)
+                    client.add_data_point(key="humidity", value=humidity)
 
-                # Add data points for temperature and humidity
-                client.add_data_point(key="temperature", value=temperature_c)
-                client.add_data_point(key="humidity", value=humidity)
-
-                # Dispatch the data points to the asset named "room"
-                client.dispatch()
+                    # Dispatch the data points to the asset named "room"
+                    client.dispatch()
+                else:
+                    print('Failed to get reading from DHT sensor')
             except RuntimeError as error:
                 # Handle common sensor reading errors by retrying after a short delay
                 print(error.args[0])
