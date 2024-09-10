@@ -31,6 +31,8 @@ client = ZohoIoTClient(secure_connection=True,logger=logger)
 
 # Initialize the DHT22 sensor (data pin connected to GPIO 4)
 sensor = DHT_SENSOR(pin=4,dht_model="22")
+# Uncomment the following line to use the DHT11 sensor instead
+# sensor = DHT_SENSOR(pin=4,dht_model="11")
 result = sensor.read()
 
 # Define a signal handler to cleanly disconnect and exit on SIGINT (Ctrl+C)

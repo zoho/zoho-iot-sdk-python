@@ -27,9 +27,9 @@ Before running this example, ensure you have the following:
 
     ```python
     # Initialize the DHT22 sensor (data pin connected to GPIO 4)
-    sensor = adafruit_dht.DHT22(board.D4)
+    sensor = DHT_SENSOR(pin=4,dht_model="22")
     # Uncomment the following line to use the DHT11 sensor instead
-    # sensor = adafruit_dht.DHT11(board.D4)
+    # sensor = DHT_SENSOR(pin=4,dht_model="11")
     ```
 
 3. **Add Zoho IoT TLS Credentials**: Open the script and add your Zoho IOT TLS credentials in the appropriate section:

@@ -28,7 +28,7 @@ class DHT_SENSOR:
     
     __pin = 0
     __isDht11 = True
-    __Dht_model = "sensor"
+    __Dht_model = "11"
 
     def __init__(self, pin, dht_model):
         self.__pin = pin
