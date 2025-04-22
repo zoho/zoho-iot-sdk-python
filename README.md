@@ -38,6 +38,7 @@ To install the Zoho IOT Python SDK:
 3. Install the required dependencies:
 
     ```bash
+    pip install --upgrade pip setuptools wheel
     pip install -r requirements.txt
     ```
 
