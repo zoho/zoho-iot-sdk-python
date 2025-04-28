@@ -33,7 +33,7 @@ client = ZohoIoTClient(secure_connection=True,logger=logger)
 sensor = DHT_SENSOR(pin=4,dht_model="22")
 # Uncomment the following line to use the DHT11 sensor instead
 # sensor = DHT_SENSOR(pin=4,dht_model="11")
-result = sensor.read()
+
 
 # Define a signal handler to cleanly disconnect and exit on SIGINT (Ctrl+C)
 def handler(sig, frame):
@@ -59,6 +59,7 @@ def main():
         while True:
             try:
                 # Read temperature and humidity from the sensor
+                result = sensor.read()
                 if result.is_valid():
                     temperature_c = result.temperature
                     humidity = result.humidity
