@@ -13,9 +13,9 @@ To install the Zoho IOT Python SDK:
 1. Download the latest version of SDK:
 
     ```bash
-    curl -L -o zoho-iot-sdk-python.zip https://github.com/zoho/zoho-iot-sdk-python/archive/refs/tags/0.1.0.zip
+    curl -L -o zoho-iot-sdk-python.zip https://github.com/zoho/zoho-iot-sdk-python/archive/refs/tags/0.1.1.zip
     unzip zoho-iot-sdk-python.zip
-    mv zoho-iot-sdk-python-0.1.0 zoho-iot-sdk-python
+    mv zoho-iot-sdk-python-0.1.1 zoho-iot-sdk-python
     cd zoho-iot-sdk-python
     ```
 

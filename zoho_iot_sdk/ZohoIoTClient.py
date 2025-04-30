@@ -46,6 +46,8 @@ class ZohoIoTClient:
         self.clientStatus = ClientStatus.NOT_INITIALIZED
         self.subscriptionTopicsList = []
         self.connectionEvent = threading.Event()
+        self.disconnectionEvent = threading.Event()
+        self.publishEvent = threading.Event()
         self.subscribeEvent = threading.Event()
         self.callBackList = {}
         self.autoReconnect = True
@@ -76,6 +78,7 @@ class ZohoIoTClient:
         self.connectResponseCode = rc
         if self.connectResponseCode == 0:
             if self.clientStatus == ClientStatus.DISCONNECTED:
+                self.clientStatus = ClientStatus.CONNECTED
                 self.logger.info("Client reconnected")
                 threading.Thread(target=self.resubscribe, args=()).start()
         self.clientStatus = ClientStatus.CONNECTED
@@ -89,13 +92,13 @@ class ZohoIoTClient:
         self.failedAck = temp_dict.copy()
 
     def _on_publish(self, client, userdata, mid):
-        self.connectionEvent.set()
+        self.publishEvent.set()
 
     def _on_disconnect(self, client, userdata, rc):
         self.logger.info("Client disconnected")
         self.clientStatus = ClientStatus.DISCONNECTED
         self.disconnectResponseCode = rc
-        self.connectionEvent.set()
+        self.disconnectionEvent.set()
 
     def _on_subscribe(self, client, userdata, mid, granted_qos):
         self.subscribeEvent.set()
@@ -245,13 +248,10 @@ class ZohoIoTClient:
 
     def validate_client_state(self):
         if self.clientStatus == ClientStatus.NOT_INITIALIZED:
-            self.logger.error("Client must be initialized")
             return TransactionStatus.FAILURE.value
         elif self.clientStatus == ClientStatus.DISCONNECTED:
-            self.logger.debug("Connection to server is disconnected")
             return TransactionStatus.CONNECTION_ERROR.value
         elif self.clientStatus == ClientStatus.INITIALIZED:
-            self.logger.debug("Client must be connected to HUB ")
             return TransactionStatus.FAILURE.value
         else:
             if self.is_connected():
@@ -328,7 +328,7 @@ class ZohoIoTClient:
                 self.logger.error("MQTTPassword cannot be empty.")
                 return TransactionStatus.FAILURE.value
             self.port = 1883
-        self.logger.debug("clien_id:"+self.clientID)
+        self.logger.debug("client_id:"+self.clientID)
         self.logger.debug("Hostname:"+ self.hostname)
         self.clientStatus = ClientStatus.INITIALIZED
         self.logger.debug("Client is Initialized")
@@ -560,11 +560,11 @@ class ZohoIoTClient:
             return TransactionStatus.FAILURE.value
         client_state = self.validate_client_state()
         if client_state != 0:
-            self.logger.error("Client is not in connected state")
+            self.logger.error("Message published failed, Client is not connected")
             return TransactionStatus.FAILURE.value
-        self.connectionEvent.clear()
-        rc = self.pahoClient.publish(topic=topic, payload=message, qos=0, retain=False)
-        if not self.connectionEvent.wait(timeout=10):
+        self.publishEvent.clear()
+        rc = self.pahoClient.publish(topic=topic, payload=message, qos=1, retain=False)
+        if not self.publishEvent.wait(timeout=10):
             self.logger.error("Publish timeout, unable to publish message")
             return TransactionStatus.FAILURE.value
 
@@ -587,13 +587,13 @@ class ZohoIoTClient:
             return TransactionStatus.SUCCESS.value
 
         if self.is_connected():
-            self.connectionEvent.clear()
+            self.disconnectionEvent.clear()
             self.pahoClient.loop_stop()
             self.pahoClient.disconnect()
-            if not self.connectionEvent.wait(timeout=10):
+            if not self.disconnectionEvent.wait(timeout=10):
                 self.logger.error("Disconnect timeout, unable to disconnect Client:%s", self.hostname)
                 return TransactionStatus.FAILURE.value
-        self.connectionEvent.clear()
+        self.disconnectionEvent.clear()
 
         if self.disconnectResponseCode != 0:
             self.logger.error("Unable to Disconnect paho client , with rc = %d", self.disconnectResponseCode)
