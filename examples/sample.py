@@ -1,6 +1,5 @@
 import logging
 from zoho_iot_sdk import ZohoIoTClient
-from zoho_iot_sdk import TransactionStatus
 MQTT_USER_NAME = "<user name>"
 MQTT_PASSWORD = "<password>"
 
